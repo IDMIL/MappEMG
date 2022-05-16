@@ -1,5 +1,5 @@
 # biosiglive
-Streaming and processing biosignals in real time from Nexus or Delsys Trigno Community
+Streaming and processing biosignals in real time from BITalino, Nexus, or Delsys Trigno Community
 
 ## Instalation
 To install the program run the following comand in the main directory
