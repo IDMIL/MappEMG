@@ -47,7 +47,7 @@ class GenericProcessing:
         y = lfilter(b, a, data)
         return y
 
-    def _butter_lowpass_filter(self, data, lowcut, fs, order=4):
+    def butter_lowpass_filter(self, data, lowcut, fs, order=4):
         b, a = self._butter_lowpass(lowcut, fs, order=order)
         y = filtfilt(b, a, data)
         return y
@@ -150,7 +150,7 @@ class RealTimeProcessing(GenericProcessing):
             emg_proc_tmp = abs(self._butter_bandpass_filter(raw_emg, self.bpf_lcut, self.bpf_hcut, self.emg_rate))
 
             if lpf is True:
-                emg_lpf_tmp = self._butter_lowpass_filter(emg_proc_tmp, self.lpf_lcut, self.emg_rate, order=self.lp_butter_order)
+                emg_lpf_tmp = self.butter_lowpass_filter(emg_proc_tmp, self.lpf_lcut, self.emg_rate, order=self.lp_butter_order)
                 emg_lpf_tmp = emg_lpf_tmp[:, ::emg_sample]
                 emg_proc = np.append(emg_proc[:, emg_sample:], emg_lpf_tmp[:, -emg_sample:], axis=1)
 
@@ -255,7 +255,9 @@ class RealTimeProcessing(GenericProcessing):
                   signal_proc: np.ndarray,
                   threshold: float,
                   chanel_idx: Union[int, list] = None,
-                  window_len: float = 200,
+                  nb_min_frame: float = 2000,
+                  is_one = None,
+                  min_peaks_interval = None
                   ):
         """
         Allow to get the number of peaks for an analog signal (to get cadence from treadmill for instance).
@@ -267,43 +269,62 @@ class RealTimeProcessing(GenericProcessing):
         chanel
         window_len
         rate
+        nb_min_frame
 
         Returns
         -------
 
         """
         nb_peaks = []
-        is_one = False
-        sample_proc = np.copy(signal)
+        if len(new_sample.shape) == 1:
+            new_sample = np.expand_dims(new_sample, 0)
+        sample_proc = np.copy(new_sample)
+
         for i in range(new_sample.shape[0]):
             for j in range(new_sample.shape[1]):
                 if new_sample[i, j] < threshold:
                     sample_proc[i, j] = 0
-                    is_one = False
-                elif new_sample[i, j] > threshold and not is_one:
-                    sample_proc[i, j] = 1
-                    is_one = True
+                    is_one[i] = False
+                elif new_sample[i, j] >= threshold:
+                    if not is_one[i]:
+                        sample_proc[i, j] = 1
+                        is_one[i] = True
+                    else:
+                        sample_proc[i, j] = 0
 
         if len(signal) == 0:
             signal = new_sample
             signal_proc = sample_proc
+            nb_peaks = np.zeros((1, 1))
 
-        elif signal.shape[1] < window_len + new_sample.shape[1]:
+        elif signal.shape[1] < nb_min_frame:
             signal = np.append(signal, new_sample, axis=1)
             signal_proc = np.append(signal_proc, sample_proc, axis=1)
+            nb_peaks = np.zeros((1, 1))
 
         else:
-            signal = np.append(signal[:, -window_len + new_sample:], new_sample, axis=1)
-            signal_proc = np.append(signal_proc[:, -window_len + sample_proc:], sample_proc, axis=1)
+            signal = np.append(signal[:, -nb_min_frame + new_sample.shape[1]:], new_sample, axis=1)
+            signal_proc = np.append(signal_proc[:, -nb_min_frame + new_sample.shape[1]:], sample_proc, axis=1)
 
         if chanel_idx:
             signal = signal[chanel_idx, :]
             signal_proc = signal_proc[chanel_idx, :]
 
-        for i in range(sample_proc.shape[0]):
-            if i in chanel_idx:
-                nb_peaks.append(np.count_nonzero(signal_proc[i, :] == 1))
-        return nb_peaks, signal_proc, signal
+        if min_peaks_interval:
+            signal_proc = RealTimeProcessing._check_and_adjust_intervall(signal_proc, min_peaks_interval)
+
+        if isinstance(nb_peaks, list):
+            nb_peaks.append(np.count_nonzero(signal_proc[:, :] == 1))
+        return nb_peaks, signal_proc, signal, is_one
+
+    @staticmethod
+    def _check_and_adjust_intervall(signal, interval):
+        for j in range(signal.shape[0]):
+            if np.count_nonzero(signal[j, -interval:] == 1) not in [0, 1]:
+                idx = np.where(signal[j, -interval:] == 1)[0]
+                for i in idx[1:]:
+                    signal[j, -interval:][i] = 0
+        return signal
 
     @staticmethod
     def custom_processing(funct, raw_data, data_proc, data_tmp, *args, **kwargs):
@@ -355,7 +376,7 @@ class OfflineProcessing(GenericProcessing):
                 empty_ma = np.ndarray((data.shape[0], data.shape[1]))
                 emg_processed = self._moving_average(emg_processed, w, empty_ma)
             else:
-                emg_processed = self._butter_lowpass_filter(emg_processed, self.lpf_lcut, frequency, order=self.lp_butter_order)
+                emg_processed = self.butter_lowpass_filter(emg_processed, self.lpf_lcut, frequency, order=self.lp_butter_order)
         return emg_processed
 
     @staticmethod
