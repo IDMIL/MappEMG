@@ -54,10 +54,11 @@ class Device(Type):
     This class is used to store the available devices.
     """
 
-    def __init__(self, name: str = None, type: str = "emg", rate: float = 2000, system_rate: float = 100, channel_names: list = None):
+    def __init__(self, name: str = None, type: str = "emg", rate: float = 2000, system_rate: float = 100, channel_names: list = None, acq_channels: list = None):
         super().__init__(name, type, rate, system_rate)
         self.infos = None
         self.channel_names = channel_names
+        self.acq_channels = acq_channels
 
     def add_channel_names(self, channel_names: list):
         """
