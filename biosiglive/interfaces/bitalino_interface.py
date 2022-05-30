@@ -30,7 +30,7 @@ class BitalinoClient:
             number of samples taken when pulling data.
         """
         # bitalino devices do not need a type, at least for now
-        new_device = Device(name, ratre=rate, system_rate=system_rate, acq_channels=acq_channels)
+        new_device = Device(name, rate=rate, system_rate=system_rate, acq_channels=acq_channels)
         self.devices.append(new_device)
         
         self.client = bitalino.BITalino(self.address)

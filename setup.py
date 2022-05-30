@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import find_packages, setup
 
 setup(
     name="biosiglive",
@@ -6,9 +6,12 @@ setup(
     version='0.1',
     author="Aceglia",
     author_email="amedeo.ceglia@umontreal.ca",
-    url="https://github.com/aceglia/biosiglive",
+    # url="https://github.com/aceglia/biosiglive",
+    #url="https://github.com/karlmiko/biosiglive.git",
     license="Apache 2.0",
-    packages=["biosiglive"],
+    # package_dir={'':'biosiglive'},
+    package_data={'': ['*.json']},
+    packages=find_packages(include=['biosiglive', 'biosiglive.*']),
     keywords="biosiglive",
     classifiers=[
         "Programming Language :: Python :: 3.6",

@@ -1,3 +1,4 @@
+
 import numpy as np
 from biosiglive.interfaces.bitalino_interface import BitalinoClient
 # from biosiglive.processing.data_processing import RealTimeProcessing
