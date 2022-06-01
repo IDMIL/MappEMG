@@ -1,6 +1,7 @@
 from .param import *
 try:
     import bitalino
+    import numpy as np
 except ModuleNotFoundError:
     pass
 
@@ -9,12 +10,12 @@ class BitalinoClient:
     def __init__(self, ip: str = None):
         # The macAddress variable on Windows can be "XX:XX:XX:XX:XX:XX" or "COMX"
         # while on Mac OS can be "/dev/tty.BITalino-XX-XX-DevB"
-        self.address = "127.0.0.1" if not ip else ip
+        self.address = "/dev/tty.BITalino-XX-XX-DevB" if not ip else ip
         self.devices = []
         # self.imu = []
         self.client = None
 
-    def add_device(self, name: str = None, rate: int = 1000, system_rate: int = 100, acq_channels: list = [1,2,3,4,5,6]):
+    def add_device(self, name: str = None, rate: int = 1000, system_rate: int = 50, acq_channels: list = [1,2,3,4,5,6]):
 
     # def __init__(self, name: str = None, type: str = "emg", rate: float = 2000, system_rate: float = 100, channel_names: list = None):
     
@@ -66,7 +67,9 @@ class BitalinoClient:
 
         for device in devices:
             try:
-                device_data = self.client.read(device.system_rate)
+                device_data = np.array(self.client.read(nSamples=device.system_rate))
+                device_data = np.delete(device_data, [0, 1, 2, 3, 4], 1)
+
             except:
                 raise RuntimeError(f"Error in getting data from bitalino device.")            
             all_device_data.append(device_data)
