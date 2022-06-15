@@ -388,7 +388,7 @@ class OfflineProcessing(GenericProcessing):
                     mvc_trials: np.ndarray,
                     window_size: int,
                     mvc_list_max: np.ndarray,
-                    tmp_file: str = None,
+                    tmp_file, # is should be a str or left None
                     output_file: str = None,
                     save: bool = False):
         """
@@ -416,6 +416,8 @@ class OfflineProcessing(GenericProcessing):
             MVC for each muscle.
 
         """
+        # TO DO: Review how this is being done, because only 2 values are outputed even when doing multiple trials
+
         for i in range(nb_muscles):
             mvc_temp = -np.sort(-mvc_trials, axis=1)
             if i == 0:
@@ -425,7 +427,7 @@ class OfflineProcessing(GenericProcessing):
         mvc_list_max = -np.sort(-mvc_list_max, axis=1)[:, :window_size]
         mvc_list_max = np.median(mvc_list_max, axis=1)
 
-        if tmp_file:
+        if tmp_file is not None:
             mat_content = sio.loadmat(tmp_file)
             mat_content["MVC_list_max"] = mvc_list_max
         else:
@@ -433,5 +435,6 @@ class OfflineProcessing(GenericProcessing):
 
         if save:
             sio.savemat(output_file, mat_content)
-        os.remove(tmp_file)
-        return mvc_list_max
+        if tmp_file is not None:
+            os.remove(tmp_file)
+        return mat_content

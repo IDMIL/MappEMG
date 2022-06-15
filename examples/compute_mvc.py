@@ -209,8 +209,8 @@ class ComputeMvc:
                 self.try_list = self.try_list[:-1]
 
             elif task == "q":
-                self._save_trial()
-                break
+                mvc = self._save_trial()
+                return mvc
 
     def _init_trial(self):
         """
@@ -288,7 +288,7 @@ class ComputeMvc:
                 tic = time()
 
                 data = data_tmp if nb_frame == 0 else np.append(data, data_tmp, axis=1)
-                print(data)
+                # print(data)
 
                 self._update_live_plot(data, nb_frame)
                 nb_frame += 1
@@ -307,6 +307,8 @@ class ComputeMvc:
                         return data
 
             except KeyboardInterrupt:
+                if self.test_with_connection is True:
+                    self.emg_interface.stop_acquisition()
                 if self.show_data is True:
                     self.app.disconnect()
                     try:
@@ -493,7 +495,10 @@ class ComputeMvc:
         print("Concatenate data for all trials.")
 
         # Concatenate all trials from the tmp file.
+        # TO DO: Clean the tmp file, it's taking old trials and including it to the mix
         mat_content = sio.loadmat("_MVC_tmp.mat")
+        print("compute_mvc file", mat_content, "\n\n")
+
         data_final = []
         for i in range(len(self.try_list)):
             if i == 0:
@@ -516,9 +521,9 @@ class ComputeMvc:
                                             mvc_trials,
                                             self.mvc_windows,
                                             mvc_list_max,
-                                            '_MVC_tmp_mat',
+                                            None,#'_MVC_tmp_mat',
                                             self.output_file, save)
-        print(mvc)
+        return mvc
 
 if __name__ == "__main__":
     # number of EMG electrode
@@ -534,7 +539,7 @@ if __name__ == "__main__":
     MVC = ComputeMvc(
         stream_mode="bitalino",
         interface_ip="/dev/tty.BITalino-7E-19-DevB",
-        output_file=file_name,
+        # output_file=file_name,
         test_with_connection=True,
         muscle_names=muscle_names,
         emg_frequency=1000,
