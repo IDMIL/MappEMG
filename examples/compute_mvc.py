@@ -6,6 +6,7 @@ This file is part of biosiglive. it is an example to see how to use biosiglive t
 from time import strftime
 from biosiglive.interfaces.vicon_interface import ViconClient
 from biosiglive.interfaces.pytrigno_interface import PytrignoClient
+from biosiglive.interfaces.bitalino_interface import BitalinoClient
 from biosiglive.interfaces.client_interface import TcpClient
 from biosiglive.processing.data_processing import OfflineProcessing
 from biosiglive.gui.plot import LivePlot, Plot
@@ -23,9 +24,9 @@ class ComputeMvc:
                  interface_port: int = 801,  # only for vicon
                  output_file: str = None,
                  muscle_names: list = None,
-                 emg_frequency: float = 2000,
-                 acquisition_rate: float = 100,
-                 mvc_windows: int = 2000,
+                 emg_frequency: float = 100,
+                 acquisition_rate: float = 5,
+                 mvc_windows: int = 100,
                  test_with_connection: bool = True,
                  range_muscle: Union[tuple, int] = None,
                  ):
@@ -102,6 +103,8 @@ class ComputeMvc:
                 self._init_pytrigno_emg()
             elif self.stream_mode == "vicon":
                 self._init_vicon_emg()
+            elif self.stream_mode == "bitalino":
+                self._init_bitalino_emg()
             elif self.stream_mode == "server_data":
                 self._init_server_emg()
             else:
@@ -241,8 +244,8 @@ class ComputeMvc:
         nb_frame = 0
         try:
             float(t)
-            iter = float(t) * self.acquisition_rate
-            var = iter
+            iter = float(t) * (self.frequency/self.acquisition_rate)
+            var = int(iter)
             duration = True
         except ValueError:
             var = -1
@@ -267,6 +270,8 @@ class ComputeMvc:
             The EMG data of the trial.
         """
         data = None
+        if self.test_with_connection is True:
+            self.emg_interface.start_acquisition()
         while True:
             try:
                 if nb_frame == 0:
@@ -276,12 +281,14 @@ class ComputeMvc:
                     )
 
                 if self.test_with_connection is True:
-                    data_tmp = self.emg_interface.devices[0].get_device_data(stream_now=True, get_names=True)
+                    #data_tmp = self.emg_interface.devices[0].get_device_data(stream_now=True, get_names=True)
+                    data_tmp = self.emg_interface.get_device_data(device_name="Bitalino")[0]
                 else:
-                    data_tmp = np.random.random((self.nb_muscles, int(self.frequency / self.acquisition_rate)))
+                    data_tmp = np.random.random((self.nb_muscles, int(self.acquisition_rate)))
                 tic = time()
 
                 data = data_tmp if nb_frame == 0 else np.append(data, data_tmp, axis=1)
+                print(data)
 
                 self._update_live_plot(data, nb_frame)
                 nb_frame += 1
@@ -295,6 +302,8 @@ class ComputeMvc:
 
                 if duration:
                     if nb_frame == var:
+                        if self.test_with_connection is True:
+                            self.emg_interface.stop_acquisition()
                         return data
 
             except KeyboardInterrupt:
@@ -457,6 +466,13 @@ class ComputeMvc:
         self.emg_interface = ViconClient(self.interface_ip, self.interface_port)
         self.emg_interface.add_device(self.device_name, type="emg", rate=self.frequency)
 
+    def _init_bitalino_emg(self):
+        """
+        Initialize the vicon EMG object.
+        """
+        self.emg_interface = BitalinoClient(self.interface_ip)
+        self.emg_interface.add_device("Bitalino", rate=self.frequency, system_rate=self.acquisition_rate, acq_channels=[0, 1])
+
     def _init_server_emg(self):
         """
         Initialize the server EMG object.
@@ -516,11 +532,16 @@ if __name__ == "__main__":
     # Run MVC
     muscles_idx = (0, n_electrode - 1)
     MVC = ComputeMvc(
-        stream_mode="server_data",
+        stream_mode="bitalino",
+        interface_ip="/dev/tty.BITalino-7E-19-DevB",
         output_file=file_name,
-        test_with_connection=False,
+        test_with_connection=True,
         muscle_names=muscle_names,
+        emg_frequency=1000,
+        acquisition_rate=100,
+        mvc_windows=1000
     )
-    processing_method = OfflineProcessing().process_emg()
+    
+    # processing_method = OfflineProcessing().process_emg()
     list_mvc = MVC.run()
     print(list_mvc)

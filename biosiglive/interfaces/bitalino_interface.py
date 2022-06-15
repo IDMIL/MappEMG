@@ -12,13 +12,14 @@ class BitalinoClient:
         # while on Mac OS can be "/dev/tty.BITalino-XX-XX-DevB"
         self.address = "/dev/tty.BITalino-XX-XX-DevB" if not ip else ip
         self.devices = []
-        # self.imu = []
         self.client = None
+        self.rate = 1000
+        self.system_rate = 50
+        self.acq_channels = [0,1,2,3,4,5]
 
-    def add_device(self, name: str = None, rate: int = 1000, system_rate: int = 50, acq_channels: list = [1,2,3,4,5,6]):
 
-    # def __init__(self, name: str = None, type: str = "emg", rate: float = 2000, system_rate: float = 100, channel_names: list = None):
-    
+    def add_device(self, name: str = None, rate: int = 1000, system_rate: int = 50, acq_channels: list = [0,1,2,3,4,5]):
+
         """
         Add a device to the Bitalino client.
         Parameters
@@ -30,12 +31,24 @@ class BitalinoClient:
         n_samples : int
             number of samples taken when pulling data.
         """
+
+        self.rate = rate
+        self.system_rate = system_rate
+        self.acq_channels = acq_channels
+
         # bitalino devices do not need a type, at least for now
         new_device = Device(name, rate=rate, system_rate=system_rate, acq_channels=acq_channels)
         self.devices.append(new_device)
         
         self.client = bitalino.BITalino(self.address)
-        self.client.start(rate, acq_channels)
+        # self.client.start(rate, acq_channels)
+        # self.start_acquisition()
+    
+    def start_acquisition(self):
+        self.client.start(self.rate, self.acq_channels)
+
+    def stop_acquisition(self):
+        self.client.stop()
 
     def get_device_data(self, device_name: str = "all", *args):
         """
@@ -67,8 +80,9 @@ class BitalinoClient:
 
         for device in devices:
             try:
-                device_data = np.array(self.client.read(nSamples=device.system_rate))
+                device_data = np.array(self.client.read(nSamples=device.system_rate), dtype=float)
                 device_data = np.delete(device_data, [0, 1, 2, 3, 4], 1)
+                device_data = device_data.T
 
             except:
                 raise RuntimeError(f"Error in getting data from bitalino device.")            

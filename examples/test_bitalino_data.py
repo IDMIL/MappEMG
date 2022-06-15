@@ -34,9 +34,20 @@ if __name__ == '__main__':
     # def add_device(self, name: str = None, rate: int = 1000, system_rate: int = 100, acq_channels: list = [1,2,3,4,5,6]):
     bitalino_interface.add_device("Bitalino", rate=rate, system_rate=system_rate, acq_channels=acq_channels)
 
-    print()
-    while True:
+    run = True
+    while run:
+        bitalino_interface.start_acquisition()
+        print()
+        n_frames = 0
+        while n_frames < 20:
 
-        data = bitalino_interface.get_device_data(device_name="Bitalino")
-        print(data)
+
+            data = bitalino_interface.get_device_data(device_name="Bitalino")[0]
+            print(np.shape(data), data)
+            n_frames += 1
+
+        bitalino_interface.stop_acquisition()
+        print("END\n")
+        run = bool(input("Read again? "))
+                        
 
