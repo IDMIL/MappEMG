@@ -23,7 +23,7 @@ import multiprocessing as mp
 import os
 from biosiglive.streaming.connection import Server
 from biosiglive.io import save_data
-from biosiglive.interfaces import pytrigno_interface, vicon_interface
+from biosiglive.interfaces import pytrigno_interface, vicon_interface, bitalino_interface
 from biosiglive.processing.data_processing import RealTimeProcessing
 from biosiglive.processing.msk_functions import kalman_func
 from biosiglive.gui.plot import LivePlot
@@ -65,7 +65,7 @@ class LiveData:
             emg_dec=10,
             timeout=None,
             buff_size=Buff_size,
-            stream_from="vicon",  # 'vicon' or 'pytrigno',
+            stream_from="bitalino",  # 'vicon' or 'pytrigno',
             device_host_ip="127.0.0.1",  # localhost
             muscle_range=None,
             output_file=None,
@@ -171,6 +171,9 @@ class LiveData:
             self.interface = vicon_interface.ViconClient(ip=device_host_ip, port=801, init_now=False)
         elif self.stream_from == 'pytrigno':
             self.interface = pytrigno_interface.PytrignoClient(ip=device_host_ip)
+        elif self.stream_from == 'bitalino':
+            self.interface = bitalino_interface.BitalinoClient(ip=device_host_ip)
+
         # elif not self.try_w_connection:
         #     self.interface = offline_interface()
         else:
@@ -516,7 +519,7 @@ class LiveData:
         rplt: list of live plot, layout: qt layout, qt app : pyqtapp, checkbox : list of checkbox
 
         """
-        self.plot_app = LivePlot(multi_process=multi)
+        self.plot_app = LivePlot()# multi_process=multi)
         self.plot_app.add_new_plot("EMG", "curve", names)
         rplt, layout, app, box = self.plot_app.init_plot_window(self.plot_app.plot[0],
                                                                 use_checkbox=True,
@@ -683,3 +686,36 @@ class LiveData:
             if 1 / duration > self.acquisition_rate:
                 sleep((1 / self.acquisition_rate) - duration)
             # delta, delta_tmp = self._loop_sleep(delta_tmp, delta, tic)
+
+if __name__ == '__main__':
+    
+    go_live = LiveData(
+            server_ip="",
+            server_ports=(),
+            type=None,
+            acquisition_rate=100,
+            emg_rate=2000,
+            imu_rate=148.1,
+            markers_rate=100,
+            emg_windows=2000,
+            markers_windows=100,
+            imu_windows=100,
+            read_frequency=None,
+            recons_kalman=False,
+            model_path=None,
+            proc_emg=True,
+            proc_imu=True,
+            markers_dec=4,
+            emg_dec=10,
+            timeout=None,
+            buff_size=Buff_size,
+            stream_from="bitalino",  # 'vicon' or 'pytrigno',
+            device_host_ip="127.0.0.1",  # localhost
+            muscle_range=None,
+            output_file=None,
+            output_dir=None,
+            save_data=True,
+            offline_file_path=None,
+            smooth_markers=False)
+    
+    

@@ -288,8 +288,9 @@ class ComputeMvc:
                 tic = time()
 
                 data = data_tmp if nb_frame == 0 else np.append(data, data_tmp, axis=1)
-                # print(data)
-
+                
+                
+                print(data, nb_frame)
                 self._update_live_plot(data, nb_frame)
                 nb_frame += 1
 
@@ -413,18 +414,14 @@ class ComputeMvc:
         ----------
         multi: bool
             If True, the live plot is initialized for multi-threads plot.
-
         Returns
         -------
         rplt: list of live plot, layout: qt layout, qt app : pyqtapp, checkbox : list of checkbox
 
         """
-        self.plot_app = LivePlot(multi_process=multi)
+        self.plot_app = LivePlot() # multi_process=multi
         self.plot_app.add_new_plot("EMG", "curve", self.muscle_names)
-        rplt, layout, app, box = self.plot_app.init_plot_window(self.plot_app.plot[0],
-                                                                use_checkbox=True,
-                                                                remote=True
-                                                                )
+        rplt, layout, app, box = self.plot_app.init_plot_window(plot=self.plot_app.plot[0], use_checkbox=True)
         return rplt, layout, app, box
 
     def _update_live_plot(self, data, nb_frame):
@@ -437,14 +434,10 @@ class ComputeMvc:
         nb_frame: int
             The current frame.
         """
-        if self.plot_app:
-            plot_data = data if nb_frame < self.acquisition_rate else data[:, -self.mvc_windows:]
-            self.plot_app.update_plot_window(self.plot_app.plot[0],
-                                             plot_data,
-                                             self.app,
-                                             self.rplt,
-                                             self.box
-                                             )
+        if self.plot_app is not None:
+            #plot_data = data if nb_frame < self.acquisition_rate else data[:, -self.mvc_windows:]
+            plot_data = data if nb_frame*self.acquisition_rate < 5*self.frequency else data[:, -5*self.frequency:]
+            self.plot_app.update_plot_window(self.plot_app.plot[0], plot_data, self.app, self.rplt, self.box)
 
     def _init_pytrigno_emg(self):
         """
@@ -548,5 +541,5 @@ if __name__ == "__main__":
     )
     
     # processing_method = OfflineProcessing().process_emg()
-    list_mvc = MVC.run()
+    list_mvc = MVC.run() # show_data=True)
     print(list_mvc)

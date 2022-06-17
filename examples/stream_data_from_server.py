@@ -28,9 +28,9 @@ if __name__ == '__main__':
 
     # Run streaming data
     host_ip = 'localhost'
-    host_port = 50000
+    host_port = 5000
     osc_ip = "127.0.0.1"
-    osc_port = 51337
+    osc_port = 5137
     osc_server = True
     save_data = True
     if osc_server is True:

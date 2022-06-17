@@ -6,8 +6,9 @@ import numpy as np
 if __name__ == '__main__':
     message = Message()
 
-    server = Server(ip="localhost", port=50000, type='TCP')
+    server = Server(ip="localhost", port=5000, type='TCP')
     server.start()
+    print("\nStart Listening...")
     while True:
-        data = {"emg": np.ndarray(4, 200), "norm_emg": True}
+        data = {"emg": np.ndarray((2, 50)), "norm_emg": True}
         server.client_listening(data)

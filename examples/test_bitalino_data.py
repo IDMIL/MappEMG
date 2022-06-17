@@ -11,7 +11,7 @@ if __name__ == '__main__':
 
     print("\nWelcome to the Bitalino example...")
     print("\nThe macAddress variable on Windows can be \"XX:XX:XX:XX:XX:XX\" or \"COMX\" \n while on Mac OS can be \"/dev/tty.BITalino-XX-XX-DevB\"")
-    address_bitalino = input("\nBitalino Address (leave empty if \"/dev/tty.BITalino-1E-10-DevB\"): ")
+    address_bitalino = input("\nBitalino Address (leave empty if \"/dev/tty.BITalino-7E-19-DevB\"): ")
     if address_bitalino == "":
         address_bitalino = "/dev/tty.BITalino-7E-19-DevB"
     try:
@@ -34,16 +34,24 @@ if __name__ == '__main__':
     # def add_device(self, name: str = None, rate: int = 1000, system_rate: int = 100, acq_channels: list = [1,2,3,4,5,6]):
     bitalino_interface.add_device("Bitalino", rate=rate, system_rate=system_rate, acq_channels=acq_channels)
 
+    plot_app = LivePlot()
+    plot_app.add_new_plot("EMG", "curve", ["A1", "A2"])
+    rplt, window, app, box = plot_app.init_plot_window(plot=plot_app.plot[0], use_checkbox=True)
+
     run = True
     while run:
         bitalino_interface.start_acquisition()
         print()
         n_frames = 0
-        while n_frames < 20:
+        while True:
 
+            data_tmp = bitalino_interface.get_device_data(device_name="Bitalino")[0]
+            # print(np.shape(data), data)
+            data = data_tmp if n_frames == 0 else np.append(data, data_tmp, axis=1)
+            # 
 
-            data = bitalino_interface.get_device_data(device_name="Bitalino")[0]
-            print(np.shape(data), data)
+            plot_data = data if n_frames*system_rate < 5*rate else data[:, -5*rate:]
+            plot_app.update_plot_window(plot_app.plot[0], plot_data, app, rplt, box)
             n_frames += 1
 
         bitalino_interface.stop_acquisition()
