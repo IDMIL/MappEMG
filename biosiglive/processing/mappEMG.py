@@ -5,6 +5,7 @@ Add all mappEMG processing functions here
 import numpy as np
 import pandas as pd
 import os
+from pythonosc.udp_client import SimpleUDPClient
 
 
 class EMGprocess:
@@ -213,3 +214,25 @@ class Mapper:
         f = self.mapper(x,'f')
         a = self.mapper(x,'a')
         return (a,f)
+
+
+class Emitter:
+
+    def __init__(self):
+        self.clients = []
+
+    def add_device_client(self, ip, port):
+        """
+        :param ip: ip of device to add, should be string
+        :param port: port of device, integer
+        :return: appends the clients list
+        """
+
+        self.clients.append(SimpleUDPClient(ip, port))
+
+    def sendMessage(self, message):
+        """
+        :param message: message to send to devices, should be list [freq,amplitude]
+        """
+        for client in self.clients:
+            client.send_message('/haptics', message)
