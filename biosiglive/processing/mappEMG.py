@@ -196,6 +196,7 @@ class Mapper:
             plt.show()
         else:
             print('Entered mapping does not correspond to either "f" or "a"')
+            print('anything')
 
             
     def mapper(self, x, mapping, **extra):
