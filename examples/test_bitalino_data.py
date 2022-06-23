@@ -2,7 +2,7 @@
 from os import system
 import numpy as np
 from biosiglive.interfaces.bitalino_interface import BitalinoClient
-from biosiglive.processing.data_processing import RealTimeProcessing
+# from biosiglive.processing.data_processing import RealTimeProcessing
 from biosiglive.gui.plot import LivePlot
 from time import sleep, time
 
@@ -43,19 +43,18 @@ if __name__ == '__main__':
         bitalino_interface.start_acquisition()
         print()
         n_frames = 0
-        while True:
+        while n_frames < 10000:
 
             data_tmp = bitalino_interface.get_device_data(device_name="Bitalino")[0]
             # print(np.shape(data), data)
             data = data_tmp if n_frames == 0 else np.append(data, data_tmp, axis=1)
-            # 
 
             plot_data = data if n_frames*system_rate < 5*rate else data[:, -5*rate:]
             plot_app.update_plot_window(plot_app.plot[0], plot_data, app, rplt, box)
             n_frames += 1
 
         bitalino_interface.stop_acquisition()
-        print("END\n")
+        print("\nEND\n")
         run = bool(input("Read again? "))
                         
 
