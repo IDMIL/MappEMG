@@ -2,10 +2,12 @@
 Add all mappEMG processing functions here
 """
 
+from cmath import inf
 import numpy as np
 import pandas as pd
 import os
 from pythonosc.udp_client import SimpleUDPClient
+import matplotlib.pyplot as plt
 
 
 class EMGprocess:
@@ -140,6 +142,9 @@ class Mapper:
             self.frequency_points.sort(key=lambda tup: tup[0])  # sorting the list according to x values
         elif mapping == 'a':
             self.amplitude_points.sort(key=lambda tup: tup[0])  # sorting the list according to x values
+        else: 
+             print('Entered mapping does not correspond to either "f" or "a"')
+
 
 
     def addThreshold(self, threshold, mapping):
@@ -153,8 +158,10 @@ class Mapper:
         '''
         if mapping == 'f':
             self.freqthreshold = threshold
-        if mapping == 'a':
+        elif mapping == 'a':
             self.amplthreshold = threshold
+        else:
+             print('Entered mapping does not correspond to either "f" or "a"')
     
 
     def changeMinY(self, y, mapping):
@@ -168,10 +175,29 @@ class Mapper:
         '''
         if mapping == 'f':
             self.yminf = y
-        if mapping == 'a':
+        elif mapping == 'a':
             self.ymina = y
+        else:
+             print('Entered mapping does not correspond to either "f" or "a"')
 
-        
+    def visualize_mapping(self, mapping):
+        '''
+        mapping: 'f' or 'a' for frequency or amplitude
+        '''
+        if mapping == 'a':
+            plt.plot([p[0] for p in self.amplitude_points], [p[1] for p in self.amplitude_points], '-ok')
+            plt.xlabel('EMG')
+            plt.ylabel('Amplitude')
+            plt.show()
+        elif mapping == 'f':
+            plt.plot([p[0] for p in self.frequency_points], [p[1] for p in self.frequency_points], '-ok')
+            plt.xlabel('EMG')
+            plt.ylabel('Frequency')
+            plt.show()
+        else:
+            print('Entered mapping does not correspond to either "f" or "a"')
+
+            
     def mapper(self, x, mapping, **extra):
         '''
         given a list of points in a function, outputs y value of x 
@@ -190,7 +216,10 @@ class Mapper:
             points = self.amplitude_points
             threshold = self.amplthreshold
             ymin = self.ymina
-        
+        else:
+             print('Entered mapping does not correspond to either "f" or "a"')
+             return -inf
+
         if x < threshold:  # if x is less than threshold
             return ymin
 
