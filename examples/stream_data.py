@@ -686,36 +686,3 @@ class LiveData:
             if 1 / duration > self.acquisition_rate:
                 sleep((1 / self.acquisition_rate) - duration)
             # delta, delta_tmp = self._loop_sleep(delta_tmp, delta, tic)
-
-if __name__ == '__main__':
-    
-    go_live = LiveData(
-            server_ip="",
-            server_ports=(),
-            type=None,
-            acquisition_rate=100,
-            emg_rate=2000,
-            imu_rate=148.1,
-            markers_rate=100,
-            emg_windows=2000,
-            markers_windows=100,
-            imu_windows=100,
-            read_frequency=None,
-            recons_kalman=False,
-            model_path=None,
-            proc_emg=True,
-            proc_imu=True,
-            markers_dec=4,
-            emg_dec=10,
-            timeout=None,
-            buff_size=Buff_size,
-            stream_from="bitalino",  # 'vicon' or 'pytrigno',
-            device_host_ip="127.0.0.1",  # localhost
-            muscle_range=None,
-            output_file=None,
-            output_dir=None,
-            save_data=True,
-            offline_file_path=None,
-            smooth_markers=False)
-    
-    

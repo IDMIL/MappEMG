@@ -88,6 +88,11 @@ class Connection:
         """
 
         data_to_prepare = {}
+        # print()
+        # print(message)
+        # print("-------------")
+        # print(data)
+
         if len(message["command"]) != 0:
             for i in message["command"]:
                 if i == "emg":
@@ -95,16 +100,16 @@ class Connection:
                         raw_emg = data["raw_emg"]
                         data_to_prepare["raw_emg"] = raw_emg
                     emg = data["emg_proc"]
-                    if message["norm_emg"]:
-                        if isinstance(message["mvc_list"], np.ndarray) is True:
-                            if len(message["mvc_list"].shape) == 1:
-                                quot = message["mvc_list"].reshape(-1, 1)
-                            else:
-                                quot = message["mvc_list"]
-                        else:
-                            quot = np.array(message["mvc_list"]).reshape(-1, 1)
-                    else:
-                        quot = [1]
+                    # if message["norm_emg"]:
+                    #     if isinstance(message["mvc_list"], np.ndarray) is True:
+                    #         if len(message["mvc_list"].shape) == 1:
+                    #             quot = message["mvc_list"].reshape(-1, 1)
+                    #         else:
+                    #             quot = message["mvc_list"]
+                    #     else:
+                    #         quot = np.array(message["mvc_list"]).reshape(-1, 1)
+                    # else:
+                    quot = [1]
                     data_to_prepare["emg"] = emg / quot
 
                 elif i == "markers":
@@ -247,7 +252,7 @@ class Server(Connection):
         encoded_data = struct.pack('>I', len(encoded_data)) + encoded_data
         try:
             connection.sendall(encoded_data)
-            print(f"data sended : {data}")
+            print(f"data sent : {data}")
         except ConnectionError:
             pass
 
