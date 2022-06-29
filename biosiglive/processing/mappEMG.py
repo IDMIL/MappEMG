@@ -16,8 +16,6 @@ class EMGprocess:
         """
         Initialize the class.
         """
-        self.amplitude_points = [(0, 0), (0.077, 3.683), (0.159, 11.049), (0.714, 107.315),(0.795, 117.094), (0.868, 121.793), (0.945, 125.222), (1, 127)]
-        self.frequency_points = [(0, 10.414), (0.032, 18.54199999), (0.082, 27.178), (0.155, 35.814), (0.985, 105.664)]
         #self.prev_values = np.array() # array is past values of emg (we can keep only last 500 values to not use too much mem)
         self.x_emg = 0 # current raw value of emg 
         self.x_emg_smoothed = 0 # current inputted x smoothed
@@ -55,16 +53,16 @@ class EMGprocess:
     #     except ValueError:  # should happen if inputed array is less than 100 values
     #         return np.amax(array)
     
-    def slide(self, slide_up = 1/5, slide_down = 1/5):
+    def slide(self, slide_up = 5, slide_down = 5):
         if self.x_emg > self.x_emg_smoothed: # if cur x value is bigger than prev computed smoothed val
             self.x_emg_smoothed = self.x_emg_smoothed + (self.x_emg - self.x_emg_smoothed) / slide_up
             
         elif self.x_emg < self.x_emg_smoothed: # if cur x value is smaller than prev computed val
             self.x_emg_smoothed = self.x_emg_smoothed + (self.x_emg - self.x_emg_smoothed) / slide_down
 
-        # if cur raw value is the same as the same as prev computed, keep that value (hence not do anything)
-        self.x_emg_scaled = self.x_emg_smoothed
-        return self.x_emg_smoothed
+        
+        self.x_emg_scaled = self.x_emg_smoothed # setup for next processing step
+        return self.x_emg_smoothed # if cur raw value is the same as the same as prev computed, keep that value (hence not do anything)
    
 
     def scale(self,expected_max):
@@ -75,16 +73,14 @@ class EMGprocess:
 
 class Mapper:
 
-    def __init__(self,n): 
+    def __init__(self,n_channels, samples_per_sec): 
         """
         Initialize the class.
         """
         self.amplitude_points = [(0, 0), (0.077, 3.683), (0.159, 11.049), (0.714, 107.315),(0.795, 117.094), (0.868, 121.793), (0.945, 125.222), (1, 127)]
         self.frequency_points = [(0, 10.414), (0.032, 18.54199999), (0.082, 27.178), (0.155, 35.814), (0.985, 105.664)]
-        self.n = n
-        self.inputs = dict()
-        for i in range(1,n+1):
-            self.inputs[i] = 0.0
+        self.n = n_channels
+        self.inputs = np.zeros((n_channels,samples_per_sec))
         self.weighted_emgs = 0.0
         self.freqthreshold = 0.0
         self.amplthreshold = 0.0
@@ -94,30 +90,27 @@ class Mapper:
         self.ymaxa = 127.0
     
     
-    def input(self, x, n):
+    def input(self, x):
         """
-        Sets nth emg to value x
+        Sets inputs to be np array x (shape should be n_channels x n_samples per sec)
         """
-        self.inputs[n] = x
+        self.inputs = x
 
     
     
     def weighted_average(self, weights):
         """
-        Takes list of weights argument, index matches emg num
-        Returns weighted average
+        Takes weight matrix of dim 1 x weights
+        Returns matrix of weighted average for each sample ( 1 x sample matrix)
         """
-        if len(weights) != len(self.inputs):
-            print('Number of inputed weights does not match number of emg used')
-            return False
 
-        sum = 0
-        numerator = 0
-        for i,w in enumerate(weights):
-            sum += w
-            numerator += w*self.inputs[i+1]
-        self.weighted_emgs = numerator/sum
-        return numerator/sum
+        try:
+            weighted_samples_addition = np.matmul(weights,self.inputs)
+            self.weighted_emgs = weighted_samples_addition/np.sum(weights)
+            return self.weighted_emgs
+        except ValueError:
+            print('Weight matrix does not match value matrix. Possible mismatch of weights and number of channels used')
+            return False
 
     
     
@@ -198,7 +191,7 @@ class Mapper:
             print('Entered mapping does not correspond to either "f" or "a"')
 
             
-    def mapper(self, x, mapping, **extra):
+    def mapper(self, x, mapping):
         '''
         given a list of points in a function, outputs y value of x 
 
@@ -242,7 +235,7 @@ class Mapper:
         '''
         f = self.mapper(x,'f')
         a = self.mapper(x,'a')
-        return (a,f)
+        return [f/127,a/127] # deviding by 127 for now bcs app gets between 0 and 1
 
 
 class Emitter:
