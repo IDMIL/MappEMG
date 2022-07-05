@@ -34,10 +34,10 @@ if __name__ == '__main__':
     acq_channels = input("\nEnter list of acquisition channels (e.g. for A1 A2 A3, write 1 2 3): ").split(" ")
     for i in range(len(acq_channels)):
         acq_channels[i] = int(acq_channels[i]) - 1
-    
-    # set sampling rate
-    rate = int(input("\nEnter sampling rate (1, 10, 100, or 1000): "))
-    system_rate = rate//20
+
+    #### set sampling rate ####
+    rate = int(input("\nEnter sampling rate (1, 10, 100, or 1000): ")) # 2000
+    system_rate = rate//20 # 100
     if system_rate == 0:
         system_rate = 1
     
@@ -52,12 +52,6 @@ if __name__ == '__main__':
     # weights = np.empty((1,n))
     # for i, w in enumerate(weights_raw):
     #     weights[0][i] = float(w)
-
-    #### set sampling rate ####
-    rate = int(input("\nEnter sampling rate (1, 10, 100, or 1000): ")) # 2000
-    system_rate = rate//20 # 100
-    if system_rate == 0:
-        system_rate = 1
     
     #### initializing post processors for each sensor & mapper ####
     # post_processors = dict()
@@ -98,7 +92,7 @@ if __name__ == '__main__':
             data_tmp = bitalino_interface.get_device_data(device_name="Bitalino")[0]
             data_tmp = (data_tmp/(2**10)-0.5)*3.3/1009*1000 # converting raw decimals to mV
         else:
-            data_tmp = np.random.random((len(acq_channels), system_rate))
+            data_tmp = np.random.random((len(acq_channels), system_rate)) # data range [0.0, 1.0)
 
         data = {"emg_server": data_tmp, "sampling_rate": rate, "system_rate": system_rate}
         server.client_listening(data)
