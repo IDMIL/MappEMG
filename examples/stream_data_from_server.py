@@ -41,49 +41,43 @@ if __name__ == '__main__':
     print_data = False
     count = 0
 
-    # 
     list_mvc = np.random.rand(n_electrode, 1).tolist()
 
-    # TO DO: nb_frames_to_get?
-    # dummy_message = Message(command=type_of_data,
-    #                   read_frequency=read_freq,
-    #                   nb_frame_to_get=1,
-    #                   get_raw_data=False,
-    #                   mvc_list=list_mvc)
-
-
+    dummy_message = Message(command=type_of_data,
+                      read_frequency=read_freq,
+                      nb_frame_to_get=1,
+                      get_raw_data=False,
+                      mvc_list=list_mvc)
     client = Client(server_ip=host_ip, port=host_port, type="TCP")
 
     # Get data streamed from server
-    # data = client.get_data(dummy_message)
-
-    # print(data)
-
-    # time.sleep(1)
-    # system_rate = data['system_rate'][0]
+    data = client.get_data(dummy_message)
+    time.sleep(1)
+    system_rate = data['system_rate'][0]
 
     # Number of frames to get comes from the server
     # depending on the device frequency
-    # HARDCODED to 5 for now until server is fixed.
     message = Message(command=type_of_data,
                       read_frequency=read_freq,
-                      nb_frame_to_get= 5, #system_rate,
+                      nb_frame_to_get=system_rate,
                       get_raw_data=False,
                       mvc_list=list_mvc)
 
     print("\nStart receiving from server")
     while True:
 
+        # Gets the data from the server.
         # Create a client to get data from server
         client = Client(server_ip=host_ip, port=host_port, type="TCP")
         # Get all the data streamed from server
         data = client.get_data(message)
-        # Get only the emg data as a numpy array.
-        emg = np.array(data['emg_proc'])
-        # print(emg)
 
+        # Get only the emg data as a numpy array.
+        emg = np.array(data['emg_server']) # you can also get sampling_rate and system_rate
+        print(emg) # emg.shape should be (2, 5) with bitalino frequency = 100
+
+        # emg is "data_tmp" from client unprocessed (but already in mV)
         # TO DO: Check if mvc exists and use it if it does.
-        # Include what's in test_bitalino_data here.
-        # emg.shape should be (2, 5) with bitalino frequency = 100
+        # Include here what's in test_bitalino_data.py.
 
        

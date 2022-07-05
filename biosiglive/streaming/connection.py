@@ -62,11 +62,11 @@ class Connection:
             ratio = int(self.acquisition_rate / read_frequency)
         data_to_prepare = self.__data_to_prepare(message, data)
         prepared_data = self.__check_and_adjust_dims(data_to_prepare, ratio, raw_data, nb_frames_to_get)
-        if message["get_names"]:
-            prepared_data["marker_names"] = data["marker_names"]
-            prepared_data["emg_names"] = data["emg_names"]
-        if "absolute_time_frame" in data.keys():
-            prepared_data["absolute_time_frame"] = data["absolute_time_frame"]
+        # if message["get_names"]:
+        #     prepared_data["marker_names"] = data["marker_names"]
+        #     prepared_data["emg_names"] = data["emg_names"]
+        # if "absolute_time_frame" in data.keys():
+        #     prepared_data["absolute_time_frame"] = data["absolute_time_frame"]
         return prepared_data
 
     @staticmethod
@@ -88,47 +88,16 @@ class Connection:
         """
 
         data_to_prepare = {}
-        # print()
-        # print(message)
-        # print("-------------")
-        # print(data)
 
         if len(message["command"]) != 0:
             for i in message["command"]:
                 if i == "emg":
-                    if message["raw_data"]:
-                        raw_emg = data["raw_emg"]
-                        data_to_prepare["raw_emg"] = raw_emg
-                    emg = data["emg_proc"]
-                    # if message["norm_emg"]:
-                    #     if isinstance(message["mvc_list"], np.ndarray) is True:
-                    #         if len(message["mvc_list"].shape) == 1:
-                    #             quot = message["mvc_list"].reshape(-1, 1)
-                    #         else:
-                    #             quot = message["mvc_list"]
-                    #     else:
-                    #         quot = np.array(message["mvc_list"]).reshape(-1, 1)
-                    # else:
-                    quot = [1]
-                    data_to_prepare["emg"] = emg / quot
-
-                elif i == "markers":
-                    markers = data["markers"]
-                    data_to_prepare["markers"] = markers
-
-                elif i == "imu":
-                    if message["raw_data"]:
-                        raw_imu = data["raw_imu"]
-                        data_to_prepare["raw_imu"] = raw_imu
-                    imu = data["imu_proc"]
-                    data_to_prepare["imu"] = imu
-
-                elif i == "force plate":
-                    raise RuntimeError("force plate not implemented yet.")
+                    emg = data["emg_server"]
+                    data_to_prepare["emg_server"] = emg
+                    data_to_prepare["sampling_rate"] = data["sampling_rate"] 
+                    data_to_prepare["system_rate"] = data["system_rate"]
                 else:
-                    raise RuntimeError(
-                        f"Unknown command '{i}'. Command must be :'emg', 'markers' or 'imu' "
-                    )
+                    raise RuntimeError(f"Unknown command '{i}'. Command must be :'emg'")
         else:
             raise RuntimeError(f"No command received.")
 
@@ -158,7 +127,9 @@ class Connection:
 
         for key in data.keys():
             if "sample" not in key:
-                if len(data[key].shape) == 2:
+                if isinstance(data[key], int):
+                    data[key] = [data[key]]
+                elif len(data[key].shape) == 2:
                     if key != "raw_emg":
                         data[key] = data[key][:, ::ratio]
                     if raw_data and key == "raw_emg":
@@ -170,6 +141,7 @@ class Connection:
                     if raw_data and key == "raw_imu":
                         nb_frames_to_get = data["imu_sample"] * nb_frames_to_get
                     data[key] = data[key][:, :, -nb_frames_to_get:].tolist()
+
         return data
 
 
