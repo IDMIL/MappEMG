@@ -416,6 +416,7 @@ class OfflineProcessing(GenericProcessing):
             MVC for each muscle.
 
         """
+        
         # TO DO: Review how this is being done, because only 2 values are outputed even when doing multiple trials
 
         for i in range(nb_muscles):

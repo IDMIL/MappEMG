@@ -4,10 +4,6 @@ This file is part of biosiglive. it is an example to see how to use biosiglive t
 """
 
 from time import strftime
-from biosiglive.interfaces.vicon_interface import ViconClient
-from biosiglive.interfaces.pytrigno_interface import PytrignoClient
-from biosiglive.interfaces.bitalino_interface import BitalinoClient
-from biosiglive.interfaces.client_interface import TcpClient
 from biosiglive.processing.data_processing import OfflineProcessing
 from biosiglive.gui.plot import LivePlot, Plot
 from time import time, sleep
@@ -16,16 +12,14 @@ import scipy.io as sio
 import numpy as np
 from typing import Union
 
+from biosiglive.streaming.client import Client, Message
+
 
 class ComputeMvc:
-    def __init__(self,
-                 stream_mode: str = "pytrigno",  # or 'server_data' or 'vicon'
-                 interface_ip: str = "127.0.0.1",
-                 interface_port: int = 801,  # only for vicon
-                 output_file: str = None,
+    def __init__(self, output_file: str = None,
                  muscle_names: list = None,
                  emg_frequency: float = 100,
-                 acquisition_rate: float = 5,
+                 acquisition_rate: float = 10,
                  mvc_windows: int = 100,
                  test_with_connection: bool = True,
                  range_muscle: Union[tuple, int] = None,
@@ -60,7 +54,9 @@ class ComputeMvc:
             The range of the muscle to compute the mvc.
         """
 
-        self.stream_mode = stream_mode
+        self.host_ip = "localhost"
+        self.host_port = 5002
+
         if muscle_names:
             self.muscle_names = muscle_names
         else:
@@ -77,8 +73,6 @@ class ComputeMvc:
         self.output_file = f"MVC_{current_time}.mat" if not output_file else output_file
 
         self.device_host = None
-        self.interface_port = interface_port
-        self.interface_ip = interface_ip
         self.range_muscle = range_muscle
         self.device_name = None
         self.nb_muscles = len(self.muscle_names)
@@ -87,28 +81,12 @@ class ComputeMvc:
         self.is_processing_method = False
         self.try_number = 0
 
-        # self.bpf_lcut, self.bpf_hcut, self.lpf_lcut = None, None, None
-        # self.lp_butter_order, self.bp_butter_order = None, None
-        # self.ma_win = None
         self.emg_processing = None
         self.moving_average, self.low_pass, self.custom = None, None, None
 
         self.try_name = ""
         self.try_list = []
         self.emg_interface = None
-        if not self.test_with_connection:
-            pass
-        else:
-            if self.stream_mode == "pytrigno":
-                self._init_pytrigno_emg()
-            elif self.stream_mode == "vicon":
-                self._init_vicon_emg()
-            elif self.stream_mode == "bitalino":
-                self._init_bitalino_emg()
-            elif self.stream_mode == "server_data":
-                self._init_server_emg()
-            else:
-                raise ValueError("stream_mode must be 'pytrigno', 'vicon' or 'server_data'")
 
     def set_processing_method(self,
                               moving_average: bool = True,
@@ -271,7 +249,15 @@ class ComputeMvc:
         """
         data = None
         if self.test_with_connection is True:
-            self.emg_interface.start_acquisition()
+            # TO DO, get e message to read info from server first, then moddify message
+            # create message
+            type_of_data = ["emg"]
+            message = Message(command=type_of_data,
+                      read_frequency=100,
+                      nb_frame_to_get=10,
+                      get_raw_data=False,
+                      mvc_list=None)
+
         while True:
             try:
                 if nb_frame == 0:
@@ -281,16 +267,19 @@ class ComputeMvc:
                     )
 
                 if self.test_with_connection is True:
-                    #data_tmp = self.emg_interface.devices[0].get_device_data(stream_now=True, get_names=True)
-                    data_tmp = self.emg_interface.get_device_data(device_name="Bitalino")[0]
+                    # Create a client to connect to server
+                    client = Client(server_ip=self.host_ip, port=self.host_port, type="TCP")
+                    # Get data streamed from server
+                    client_data= client.get_data(message)
+                    #time.sleep(1)
+                    emg = np.array(client_data['emg_proc'])
+                    data_tmp = emg
                 else:
                     data_tmp = np.random.random((self.nb_muscles, int(self.acquisition_rate)))
                 tic = time()
 
                 data = data_tmp if nb_frame == 0 else np.append(data, data_tmp, axis=1)
                 
-                
-                print(data, nb_frame)
                 self._update_live_plot(data, nb_frame)
                 nb_frame += 1
 
@@ -304,12 +293,12 @@ class ComputeMvc:
                 if duration:
                     if nb_frame == var:
                         if self.test_with_connection is True:
-                            self.emg_interface.stop_acquisition()
+                            print("\nStop acquiring from server...")
                         return data
 
             except KeyboardInterrupt:
                 if self.test_with_connection is True:
-                    self.emg_interface.stop_acquisition()
+                    print("\nStop acquiring from server...")
                 if self.show_data is True:
                     self.app.disconnect()
                     try:
@@ -439,42 +428,6 @@ class ComputeMvc:
             plot_data = data if nb_frame*self.acquisition_rate < 5*self.frequency else data[:, -5*self.frequency:]
             self.plot_app.update_plot_window(self.plot_app.plot[0], plot_data, self.app, self.rplt, self.box)
 
-    def _init_pytrigno_emg(self):
-        """
-        Initialize the pytrigno EMG object.
-        """
-        self.range_muscle = (0, 16) if not self.range_muscle else self.range_muscle
-        self.nb_muscles = len(self.range_muscle)
-        if self.muscle_names is None:
-            self.muscle_names = []
-            for i in range(self.nb_muscles):
-                self.muscle_names.append(f"Muscle_{i}")
-
-        self.emg_interface = PytrignoClient(self.interface_ip)
-        self.emg_interface.add_device("EMG_trigno", self.range_muscle, type="emg", rate=self.frequency)
-        # self.emg_interface.devices[-1].set
-
-    def _init_vicon_emg(self):
-        """
-        Initialize the vicon EMG object.
-        """
-        self.emg_interface = ViconClient(self.interface_ip, self.interface_port)
-        self.emg_interface.add_device(self.device_name, type="emg", rate=self.frequency)
-
-    def _init_bitalino_emg(self):
-        """
-        Initialize the vicon EMG object.
-        """
-        self.emg_interface = BitalinoClient(self.interface_ip)
-        self.emg_interface.add_device("Bitalino", rate=self.frequency, system_rate=self.acquisition_rate, acq_channels=[0, 1])
-
-    def _init_server_emg(self):
-        """
-        Initialize the server EMG object.
-        """
-        self.emg_interface = TcpClient(self.interface_ip, self.interface_port, type="TCP")
-        self.emg_interface.add_device(self.device_name, type="emg", rate=self.frequency)
-
     def get_data(self):
         """
         Get the EMG data from defined emg_interface.
@@ -488,7 +441,7 @@ class ComputeMvc:
         print("Concatenate data for all trials.")
 
         # Concatenate all trials from the tmp file.
-        # TO DO: Clean the tmp file, it's taking old trials and including it to the mix
+        # TO DO: Clean the tmp file, it's taking really old trials and including it to the mix
         mat_content = sio.loadmat("_MVC_tmp.mat")
         print("compute_mvc file", mat_content, "\n\n")
 
@@ -519,19 +472,15 @@ class ComputeMvc:
         return mvc
 
 if __name__ == "__main__":
+
     # number of EMG electrode
     n_electrode = 2
 
-    # set file and directory to save
-    file_name = "MVC_xxxx.mat"
-    file_dir = "MVC_01_08_2021"
-    device_host = "192.168.1.211"
     muscle_names = ["tri_long_1", "tri_long_2"]
     # Run MVC
     muscles_idx = (0, n_electrode - 1)
+
     MVC = ComputeMvc(
-        stream_mode="bitalino",
-        interface_ip="/dev/tty.BITalino-7E-19-DevB",
         # output_file=file_name,
         test_with_connection=True,
         muscle_names=muscle_names,
