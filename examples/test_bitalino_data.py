@@ -50,12 +50,10 @@ if __name__ == '__main__':
     if system_rate == 0:
         system_rate = 1
     
-    # initializing post processors for each sensor & mapper
-    post_processors = dict()
-    for i in range(0,n):
-        post_processors[i] = EMGprocess()
-
-
+    # initializing post processor
+    post_processor = EMGprocess()
+   
+    # initializing mapper
     mapper = Mapper(n,system_rate) 
 
     # initializing phones to which we send the haptics
@@ -76,7 +74,7 @@ if __name__ == '__main__':
 
     
     # def add_device(self, name: str = None, rate: int = 1000, system_rate: int = 100, acq_channels: list = [1,2,3,4,5,6]):
-    bitalino_interface.add_device("Bitalino", rate=rate, system_rate=system_rate, acq_channels=acq_channels)
+    #bitalino_interface.add_device("Bitalino", rate=rate, system_rate=system_rate, acq_channels=acq_channels) # live acq remove comment
 
     plot_app = LivePlot()
     plot_app.add_new_plot("EMG", "curve", ["A1", "A2"])
@@ -87,40 +85,37 @@ if __name__ == '__main__':
 
 
     while run:
-        bitalino_interface.start_acquisition()
+        #bitalino_interface.start_acquisition() # live acq remove comment
         #print()
         n_frames = 0
         
         while n_frames < 10000:
 
 
-            data_tmp = bitalino_interface.get_device_data(device_name="Bitalino")[0]
-            #print(np.shape(data), data)
-            #print(np.shape(data_tmp),data_tmp)
-            print('in bits', data_tmp, np.shape(data_tmp))
+            #data_tmp = bitalino_interface.get_device_data(device_name="Bitalino")[0] # comment out for mock data
+            data_tmp = np.random.rand(3,5)*1000 # comment out for live acquisition
+            
             data_tmp = (data_tmp/(2**10)-0.5)*3.3/1009*1000 # converting bits to mV
-            print('pre processed', data_tmp, np.shape(data_tmp))
-            
-            for i in range(0,n):
-                for j in range(0,len(data_tmp[i])):
+            #print('pre processed', data_tmp, np.shape(data_tmp))
 
-                    ##### PROCESSING ######
-                    post_processors[i].input(data_tmp[i][j]) # inputting data to be processed (data_tmp is a 1 x 1 matrix, thus [0][0] to obtain val)
-                    post_processors[i].clip() # clipping data in case it is not between 0 and 1
-                    post_processors[i].slide() # sliding/smoothing the data
-                    #post_processors[i].scale(0.4) # commenting this out because right now there are values bigger than .4
-                    data_tmp[i][j] = post_processors[i].x_emg_scaled
+            #### PROCESSING ####
 
+            post_processor.input(data_tmp) # inputting data to be processed
+            post_processor.clip() # clipping data in case it is not between 0 and 1
+            post_processor.slide() # smoothing the data
+            data_tmp = post_processor.scale(1) # for now scaling to 1 as it's random data 
+            #print('post processed', data_tmp, np.shape(data_tmp))
             
             
-            data = data_tmp if n_frames == 0 else np.append(data, data_tmp, axis=1)
-            #print(data)
-            plot_data = data if n_frames*system_rate < 5*rate else data[:, -5*rate:]
-            plot_app.update_plot_window(plot_app.plot[0], plot_data, app, rplt, box)
+            # data = data_tmp if n_frames == 0 else np.append(data, data_tmp, axis=1)
+            # #print(data)
+            # plot_data = data if n_frames*system_rate < 5*rate else data[:, -5*rate:]
+            # plot_app.update_plot_window(plot_app.plot[0], plot_data, app, rplt, box)
 
             ##### MAPPING  & EMITTER #####
             mapper.input(data_tmp)
             weighted_avr = mapper.weighted_average(weights)
+            
             for w in weighted_avr[0]:
                 emitter.sendMessage(mapper.toFreqAmpl(w))
            
