@@ -45,12 +45,10 @@ if __name__ == '__main__':
     if system_rate == 0:
         system_rate = 1
     
-    #### initializing post processors for each sensor & mapper ####
-    post_processors = dict()
-    for i in range(0,n):
-        post_processors[i] = EMGprocess()
+    #### initializing post processor ####
+    post_processor = EMGprocess()
 
-
+    #### initializing mapper ####
     mapper = Mapper(n,system_rate) 
 
     #### initializing phones to which we send the haptics ####
