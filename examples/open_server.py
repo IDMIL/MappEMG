@@ -41,11 +41,11 @@ if __name__ == '__main__':
     if system_rate == 0:
         system_rate = 1
     
-    #### initializing post processor ####
-    post_processor = EMGprocess()
+    # #### initializing post processor ####
+    # post_processor = EMGprocess()
 
-    #### initializing mapper ####
-    mapper = Mapper(n,system_rate) 
+    # #### initializing mapper ####
+    # mapper = Mapper(n,system_rate) 
     # n = len(acq_channels)
 
     #### initializing weights ####
@@ -58,13 +58,6 @@ if __name__ == '__main__':
     # for i, w in enumerate(weights_raw):
     #     weights[0][i] = float(w)
     
-    #### initializing post processors for each sensor & mapper ####
-    # post_processors = dict()
-    # for i in range(0,n):
-    #     post_processors[i] = EMGprocess()
-
-
-    # mapper = Mapper(n,system_rate) 
 
     #### initializing phones to which we send the haptics ####
     # emitter = Emitter()

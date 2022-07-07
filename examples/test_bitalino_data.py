@@ -9,7 +9,7 @@ from biosiglive.gui.plot import LivePlot
 from biosiglive.processing.mappEMG import Mapper
 from biosiglive.processing.mappEMG import EMGprocess
 from biosiglive.processing.mappEMG import Emitter
-from time import sleep, time
+from time import time, sleep
 
 
 if __name__ == '__main__':
@@ -76,9 +76,9 @@ if __name__ == '__main__':
     # def add_device(self, name: str = None, rate: int = 1000, system_rate: int = 100, acq_channels: list = [1,2,3,4,5,6]):
     #bitalino_interface.add_device("Bitalino", rate=rate, system_rate=system_rate, acq_channels=acq_channels) # live acq remove comment
 
-    plot_app = LivePlot()
-    plot_app.add_new_plot("EMG", "curve", ["A1", "A2"])
-    rplt, window, app, box = plot_app.init_plot_window(plot=plot_app.plot[0], use_checkbox=True)
+    # plot_app = LivePlot()
+    # plot_app.add_new_plot("EMG", "curve", ["A1", "A2"])
+    # rplt, window, app, box = plot_app.init_plot_window(plot=plot_app.plot[0], use_checkbox=True)
 
 
     run = True
@@ -90,7 +90,7 @@ if __name__ == '__main__':
         n_frames = 0
         
         while n_frames < 10000:
-
+            sleep(1)
 
             #data_tmp = bitalino_interface.get_device_data(device_name="Bitalino")[0] # comment out for mock data
             data_tmp = np.random.rand(3,5)*1000 # comment out for live acquisition
@@ -100,6 +100,7 @@ if __name__ == '__main__':
 
             #### PROCESSING ####
 
+            # post_processor.input(data_tmp/mvc) [[],[],[]]/[x,y,z]
             post_processor.input(data_tmp) # inputting data to be processed
             post_processor.clip() # clipping data in case it is not between 0 and 1
             post_processor.slide() # smoothing the data
@@ -117,11 +118,13 @@ if __name__ == '__main__':
             weighted_avr = mapper.weighted_average(weights)
             
             for w in weighted_avr[0]:
+                #print('sent data to phone')
                 emitter.sendMessage(mapper.toFreqAmpl(w))
-           
+                
+
             n_frames += 1
 
-        bitalino_interface.stop_acquisition()
+        #bitalino_interface.stop_acquisition()
         print("\nEND\n")
         run = bool(input("Read again? "))
                         

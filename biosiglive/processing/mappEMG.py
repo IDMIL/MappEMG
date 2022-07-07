@@ -247,7 +247,7 @@ class Mapper:
         '''
         f = self.mapper(x,'f')
         a = self.mapper(x,'a')
-        return [float(f)/127,float(a)/127] # deviding by 127 for now bcs app gets between 0 and 1
+        return [f/127,a/127] # deviding by 127 for now bcs app gets between 0 and 1
 
 
 class Emitter:

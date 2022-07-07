@@ -7,11 +7,16 @@ try:
 except ModuleNotFoundError:
     pass
 from biosiglive.io.save_data import add_data_to_pickle
+from biosiglive.processing.mappEMG import Mapper
+from biosiglive.processing.mappEMG import EMGprocess
+from biosiglive.processing.mappEMG import Emitter
+from time import sleep, time
 
 if __name__ == '__main__':
 
     # Set program variables
     read_freq = 100  # Be sure that it's the same than server read frequency
+    system_rate = read_freq//20 # Noa added this
     n_electrode = 2
     type_of_data = ["emg"]
 
@@ -41,6 +46,41 @@ if __name__ == '__main__':
     print_data = False
     count = 0
 
+    ############## setup for post processing ##############
+
+    ### initializing weights ###
+    weights_raw = input("\nAttribute weights between 0 and 1 to each sensor (e.g for A1 A2 A3, write 0.45 1 0): ").split(" ")
+    while len(weights_raw) != n_electrode:
+        print("\nNumber of weights does not correspond to number of channels")
+        weights_raw = input("\nAttribute weights between 0 and 1 to each sensor (e.g for A1 A2 A3, write 0.45 1 0): ").split(" ")
+    
+    weights = np.empty((1,n_electrode))
+    for i, w in enumerate(weights_raw):
+        weights[0][i] = float(w)
+    
+    ### initializing post processor ###
+    post_processor = EMGprocess()
+   
+    ### initializing mapper ###
+    mapper = Mapper(n_electrode,system_rate) 
+
+    ### initializing phones to which we send the haptics ###
+    emitter = Emitter()
+    n_devices = input('\nHow many devices with the haptics app would you like to connect? ')
+    n = 1
+    while n != int(n_devices)+ 1:
+        ip = input(f'\nIP of device number {n} (e.g: XXX.XXX.X.X): ')
+        port = input(f'\nPORT of device number {n} (e.g: 2222): ')
+        ip = str(ip)
+        port = int(port)
+        try:
+            emitter.add_device_client(ip,port)
+            n = n + 1
+        except:
+            print("Invalid IP or PORT, try again...")
+
+    ########################################################
+
     list_mvc = np.random.rand(n_electrode, 1).tolist()
 
     dummy_message = Message(command=type_of_data,
@@ -52,7 +92,7 @@ if __name__ == '__main__':
 
     # Get data streamed from server
     data = client.get_data(dummy_message)
-    time.sleep(1)
+    sleep(1)
     system_rate = data['system_rate'][0]
 
     # Number of frames to get comes from the server
@@ -79,5 +119,18 @@ if __name__ == '__main__':
         # emg is "data_tmp" from client unprocessed (but already in mV)
         # TO DO: Check if mvc exists and use it if it does.
         # Include here what's in test_bitalino_data.py.
+
+        ##### PROCESSING #####
+        post_processor.input(emg) # inputting data to be processed
+        post_processor.clip() # clipping data in case it is not between 0 and 1
+        post_processor.slide() # smoothing the data
+        data_tmp = post_processor.scale(1) # for now scaling to 1 as it's random data 
+
+        ##### MAPPING & EMITTING #####
+        mapper.input(data_tmp)
+        weighted_avr = mapper.weighted_average(weights)
+        for w in weighted_avr[0]:
+            #print('sent data to phone')
+            emitter.sendMessage(mapper.toFreqAmpl(w))
 
        
