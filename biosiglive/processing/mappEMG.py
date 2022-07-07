@@ -17,22 +17,27 @@ class EMGprocess:
         Initialize the class.
         """
         #self.prev_values = np.array() # array is past values of emg (we can keep only last 500 values to not use too much mem)
-        self.x_emg = 0 # current raw value of emg 
+        self.x_emg = 0 # current raw values from sensor, n_sensor x n_samples matrix
         self.x_emg_smoothed = 0 # current inputted x smoothed
-        self.x_emg_scaled = 0
+        self.x_prev_smoothed = 0 # keeps track of previously smoothed val
+        self.x_emg_scaled = 0 # current scaled values from sensor, n_sensor x n_samples matrix
         self.input_started = False
         
 
     # function to update currently passed emg value, as well as updating the previous values array
     def input(self, x): 
         '''
-        function that takes emg input (in %MVC)
+        function that takes emg input (n_sensor x n_samples matrix, in %MVC) 
         updates x_emg attribute of object
         '''
-        self.x_emg = float(x)
+        self.x_emg = x
+       
         if self.input_started == False: # if this is the first input passed, then the smoothed input is the same as the first input
-            self.x_emg_smoothed = float(x) 
-        self.input_started = True
+            self.prev_smoothed = float(x[0][0]) 
+            self.x_emg_smoothed = np.zeros(np.shape(x))
+            self.x_emg_scaled = np.zeros(np.shape(x))
+            self.input_started = True
+        
         # np.append(self.prev_values, x)
         # if len(self.prev_values) > 500:
         #     self.prev_values = self.prev_values[len(self.prev_values)-100:len(self.prev_values)] # updating prev values to only be the last 100 values
@@ -41,10 +46,9 @@ class EMGprocess:
         '''
         clips %MVC input such that it stays between 0 and 1
         '''
-        if self.x_emg > 1:
-            self.x_emg = 1
-        if self.x_emg < 0:
-            self.emg = 0
+        self.x_emg[self.x_emg > 1] = 1
+        self.x_emg[self.x_emg < 0] = 0
+        
         
     # @staticmethod
     # def local_maxima(array):
@@ -54,19 +58,27 @@ class EMGprocess:
     #         return np.amax(array)
     
     def slide(self, slide_up = 5, slide_down = 5):
-        if self.x_emg > self.x_emg_smoothed: # if cur x value is bigger than prev computed smoothed val
-            self.x_emg_smoothed = self.x_emg_smoothed + (self.x_emg - self.x_emg_smoothed) / slide_up
-            
-        elif self.x_emg < self.x_emg_smoothed: # if cur x value is smaller than prev computed val
-            self.x_emg_smoothed = self.x_emg_smoothed + (self.x_emg - self.x_emg_smoothed) / slide_down
 
+        for i in range(0,len(self.x_emg)):
+            for j in range(0,len(self.x_emg[i])):
+
+                if self.x_emg[i][j] > self.prev_smoothed: # if cur x value is bigger than prev computed smoothed val
+                    self.x_emg_smoothed[i][j] = self.prev_smoothed + (self.x_emg[i][j] - self.prev_smoothed) / slide_up
+                    
+                elif self.x_emg[i][j] < self.prev_smoothed: # if cur x value is smaller than prev computed val
+                    self.x_emg_smoothed[i][j] = self.prev_smoothed + (self.x_emg[i][j] - self.prev_smoothed) / slide_down
+
+                else:
+                    self.x_emg_smoothed[i][j] = self.x_emg[i][j]
+
+                self.prev_smoothed = self.x_emg_smoothed[i][j]
+                
         
-        self.x_emg_scaled = self.x_emg_smoothed # setup for next processing step
         return self.x_emg_smoothed # if cur raw value is the same as the same as prev computed, keep that value (hence not do anything)
-   
+
 
     def scale(self,expected_max):
-        self.x_emg_scaled = self.x_emg_scaled/expected_max
+        self.x_emg_scaled = self.x_emg_smoothed/expected_max
         return self.x_emg_scaled
 
         
