@@ -503,6 +503,7 @@ if __name__ == "__main__":
         with_connection = input("\nDo MVC with real data from server? (y, or n for random data): ")
     mvc_with_connection = True if with_connection == 'y' else False
 
+    # TODO: Ask for these information before connecting. Right now they are hardcoded.
     # if mvc_with_connection:
     server_ip = "localhost" if mvc_with_connection else None
     server_port = 5002 if mvc_with_connection else None

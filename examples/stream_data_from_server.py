@@ -2,6 +2,7 @@ import scipy.io as sio
 import time
 from biosiglive.streaming.client import Client, Message
 import numpy as np
+import pandas as pd
 try:
     from pythonosc.udp_client import SimpleUDPClient
 except ModuleNotFoundError:
@@ -14,24 +15,25 @@ from time import sleep, time
 
 if __name__ == '__main__':
 
+    print("Client starting...")
+
     # Set program variables
     read_freq = 100  # Be sure that it's the same than server read frequency
     system_rate = read_freq//20 # Noa added this
     n_electrode = 2
     type_of_data = ["emg"]
 
-    # Load MVC data from previous trials.
-    # try:
-    #     # Read data from the mvc result file (*.mat)
-    #     list_mvc = sio.loadmat("MVC_xx_xx_xx22/MVC_xxxx.mat")["MVC_list_max"][0]
-    # except IOError:
-    #     list_mvc = np.random.rand(n_electrode, 50).tolist()
-    #     print(np.shape(list_mvc))
+    # Load MVC data from previous trials or random
+    load_mvc = None
+    while load_mvc not in ['y', 'n']:
+        load_mvc = input("\nDo you want to load real MVC values? ('y' or 'n' for random): ")
 
-    # Set file to save data
-    # output_file = "stream_data_xxx"
-    # output_dir = "test_accel"
-    # data_path = f"{output_dir}/{output_file}"
+    if load_mvc == 'n':
+        list_mvc = np.random.rand(n_electrode, 1).tolist()
+    else:
+        mvc_file = input("\nInput name of the MVC .csv file (for example \"MVC_20220707-1915.csv\"): ")
+        list_mvc = pd.read_csv(mvc_file)    # Open .csv file
+        list_mvc = list_mvc.to_numpy()[0]   # Get MVC in the proper shape
 
     # Run streaming data
     host_ip = 'localhost'
@@ -81,8 +83,6 @@ if __name__ == '__main__':
 
     ########################################################
 
-    list_mvc = np.random.rand(n_electrode, 1).tolist()
-
     dummy_message = Message(command=type_of_data,
                       read_frequency=read_freq,
                       nb_frame_to_get=1,
@@ -116,9 +116,8 @@ if __name__ == '__main__':
         emg = np.array(data['emg_server']) # you can also get sampling_rate and system_rate
         print(emg) # emg.shape should be (2, 5) with bitalino frequency = 100
 
-        # emg is "data_tmp" from client unprocessed (but already in mV)
-        # TO DO: Check if mvc exists and use it if it does.
-        # Include here what's in test_bitalino_data.py.
+        # TODO: Code to get MVC was included above, now what do we do with MVC?
+        # The MVC value is found after processing data in compute_mvc.py
 
         ##### PROCESSING #####
         post_processor.input(emg) # inputting data to be processed
