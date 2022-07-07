@@ -417,8 +417,6 @@ class OfflineProcessing(GenericProcessing):
 
         """
         
-        # TO DO: Review how this is being done, because only 2 values are outputed even when doing multiple trials
-
         for i in range(nb_muscles):
             mvc_temp = -np.sort(-mvc_trials, axis=1)
             if i == 0:
@@ -439,3 +437,28 @@ class OfflineProcessing(GenericProcessing):
         if tmp_file is not None:
             os.remove(tmp_file)
         return mat_content
+
+    @staticmethod
+    def compute_mvc(mvc_trials: np.ndarray):
+        """
+        Computes MVC from several mvc_trials.
+
+        Parameters
+        ----------
+        mvc_trials : numpy.ndarray
+            concatenated and processed EMG data
+            from all trials in the shape (n_muscles, total_samples).    
+            e.g. trial "x" with 2 muscles A and B has shape (2, 10)
+                 trial "y" with 2 muscles A and B has shape (2, 20)
+            mvc_trials will be concatenate x, y to result in shape (2, 30)
+
+        Returns
+        -------
+        list
+            MVC for each muscle.
+        """
+        five_percent = int(mvc_trials.shape[1]*0.05)
+        max_mvc_list = -np.sort(-mvc_trials, axis=1)[:, :five_percent] # Takes the top 5% of MVC values
+        median_mvc_list = np.median(max_mvc_list, axis=1) # Returns the median of these values
+
+        return median_mvc_list

@@ -10,6 +10,7 @@ from time import time, sleep
 import os
 import scipy.io as sio
 import numpy as np
+import pandas as pd
 from typing import Union
 
 from biosiglive.streaming.client import Client, Message
@@ -18,26 +19,19 @@ from biosiglive.streaming.client import Client, Message
 class ComputeMvc:
     def __init__(self, output_file: str = None,
                  muscle_names: list = None,
-                 emg_frequency: float = 100,
-                 acquisition_rate: float = 10,
-                 mvc_windows: int = 100,
-                 test_with_connection: bool = True,
-                 range_muscle: Union[tuple, int] = None,
+                 with_connection: bool = True,
+                 server_ip: str = None,
+                 server_port: int = None
                  ):
         """
         Initialize the class.
 
         Parameters
         ----------
-        stream_mode : str
-            The mode of the stream.
-            'pytrigno' : use the pytrigno
-            'server_data' : use the server data
-            'vicon' : use the vicon
-        interface_ip : str
-            The ip of the interface.
-        interface_port : int
-            The port of the interface.
+        server_ip : str
+            The ip of the server.
+        server_port : int
+            The port of the server.
         output_file : str
             The path of the output file.
         muscle_names : list
@@ -48,34 +42,44 @@ class ComputeMvc:
             The acquisition rate of the acquisition.
         mvc_windows : int
             size of the window to compute the mvc.
-        test_with_connection : bool
+        with_connection : bool
             If True, the program will try to connect to the device.
         range_muscle : tuple
             The range of the muscle to compute the mvc.
         """
-
-        self.host_ip = "localhost"
-        self.host_port = 5002
-
-        if muscle_names:
-            self.muscle_names = muscle_names
-        else:
-            self.muscle_names = []
-            for i in range(range_muscle[0], range_muscle[1]):
-                self.muscle_names.append(f"Muscle_{i}")
-
-        self.frequency = emg_frequency
-        self.acquisition_rate = acquisition_rate
-        self.mvc_windows = mvc_windows
-        self.test_with_connection = test_with_connection
-
+        # Set MVC output file name
         current_time = strftime("%Y%m%d-%H%M")
-        self.output_file = f"MVC_{current_time}.mat" if not output_file else output_file
+        self.output_file = f"_{current_time}.csv" if not output_file else output_file
 
-        self.device_host = None
-        self.range_muscle = range_muscle
-        self.device_name = None
+        # Set server connection parameters
+        self.server_ip = server_ip # "localhost" or None
+        self.server_port = server_port # 5002 or None
+
+        # Set muscle information
+        self.muscle_names = muscle_names
         self.nb_muscles = len(self.muscle_names)
+
+        # Set frequency and acquisition parameters depending on connection
+        self.with_connection = with_connection
+        if self.with_connection:
+            message = Message(command=["emg"],
+                      read_frequency=100,
+                      nb_frame_to_get=1,
+                      get_raw_data=False,
+                      mvc_list=None)
+
+            client = Client(server_ip=self.server_ip, port=self.server_port, type="TCP")
+            data = client.get_data(message)
+            sleep(1)
+            self.frequency = data['sampling_rate'][0]
+            self.acquisition_rate = data['system_rate'][0]
+        else:
+            self.frequency = 1000
+            self.acquisition_rate = 50
+
+        # Other attributes
+        # self.mvc_windows = 1000
+
         self.show_data = False
         self.plot_app, self.rplt, self.layout, self.app, self.box = None, None, None, None, None
         self.is_processing_method = False
@@ -84,9 +88,13 @@ class ComputeMvc:
         self.emg_processing = None
         self.moving_average, self.low_pass, self.custom = None, None, None
 
+        self.first_trial = True
         self.try_name = ""
         self.try_list = []
         self.emg_interface = None
+
+        # Delete tmp file if it still exists
+        self._delete_tmp()
 
     def set_processing_method(self,
                               moving_average: bool = True,
@@ -161,11 +169,13 @@ class ComputeMvc:
             nb_frame, var, duration = self._init_trial()
             c = 0
             trial_emg = self._mvc_trial(duration, nb_frame, var)
-            processed_emg, raw_emg = self._process_emg(trial_emg, save_tmp=True)
+            # Get processed_emg from the trial_emg
+            processed_emg, raw_emg = self._process_emg(trial_emg)
+            # Plot the processed and raw emgs
             self._plot_trial(raw_emg, processed_emg)
 
             task = input(
-                "Press 'c' to do an other MVC trial," " 'r' to do again the MVC trial or 'q' then enter to quit.\n"
+                "Press 'c' to do another MVC trial, 'r' to repeat this trial, or 'q' to quit.\n"
             )
 
             while task != "c" and task != "r" and task != "q":
@@ -175,20 +185,24 @@ class ComputeMvc:
                     " 'r' to do again the MVC trial or 'q' then enter to quit.\n"
                 )
 
-            if task == "c":
-                pass
+            if task == "c" or "q":
+
+                # Save emg processed to csv file
+                df = pd.DataFrame(processed_emg.T, columns = self.muscle_names)
+                df.insert(0, 'trial_index', list(range(0, processed_emg.shape[1])))
+                df.insert(0, 'trial_name', self.try_name)
+                df.to_csv('df_trial_tmp.csv', mode='a', index=False, header=self.first_trial) # append
+                if self.first_trial == True:
+                    self.first_trial = False
+
+                if task == "q":
+                    mvc = self._save_trial()
+                    self._delete_tmp()
+                    return mvc
 
             elif task == "r":
-                self.try_number -= 1
-                mat_content = sio.loadmat("_MVC_tmp.mat")
-                mat_content.pop(f"{self.try_name}_processed", None)
-                mat_content.pop(f"{self.try_name}_raw", None)
-                sio.savemat("_MVC_tmp.mat", mat_content)
-                self.try_list = self.try_list[:-1]
-
-            elif task == "q":
-                mvc = self._save_trial()
-                return mvc
+                # Do not save trial and continue
+                processed_emg, raw_emg = None, None
 
     def _init_trial(self):
         """
@@ -248,13 +262,13 @@ class ComputeMvc:
             The EMG data of the trial.
         """
         data = None
-        if self.test_with_connection is True:
+        if self.with_connection is True:
             # TO DO, get e message to read info from server first, then moddify message
             # create message
             type_of_data = ["emg"]
             message = Message(command=type_of_data,
-                      read_frequency=100,
-                      nb_frame_to_get=10,
+                      read_frequency=self.frequency,
+                      nb_frame_to_get=self.acquisition_rate,
                       get_raw_data=False,
                       mvc_list=None)
 
@@ -266,13 +280,13 @@ class ComputeMvc:
                         "(it will not end the program)."
                     )
 
-                if self.test_with_connection is True:
+                if self.with_connection is True:
                     # Create a client to connect to server
-                    client = Client(server_ip=self.host_ip, port=self.host_port, type="TCP")
+                    client = Client(server_ip=self.server_ip, port=self.server_port, type="TCP")
                     # Get data streamed from server
                     client_data= client.get_data(message)
                     #time.sleep(1)
-                    emg = np.array(client_data['emg_proc'])
+                    emg = np.array(client_data['emg_server'])
                     data_tmp = emg
                 else:
                     data_tmp = np.random.random((self.nb_muscles, int(self.acquisition_rate)))
@@ -292,12 +306,12 @@ class ComputeMvc:
 
                 if duration:
                     if nb_frame == var:
-                        if self.test_with_connection is True:
+                        if self.with_connection is True:
                             print("\nStop acquiring from server...")
                         return data
 
             except KeyboardInterrupt:
-                if self.test_with_connection is True:
+                if self.with_connection is True:
                     print("\nStop acquiring from server...")
                 if self.show_data is True:
                     self.app.disconnect()
@@ -382,17 +396,7 @@ class ComputeMvc:
         if not self.is_processing_method:
             self.set_processing_method()
         emg_processed = self.emg_processing(data, self.frequency, pyomeca=self.low_pass, ma=self.moving_average)
-        file_name = "_MVC_tmp.mat"
-        # save tmp_file
-        if save_tmp:
-            if os.path.isfile(file_name):
-                mat = sio.loadmat(file_name)
-                mat[f"{self.try_name}_processed"] = emg_processed
-                mat[f"{self.try_name}_raw"] = data
-                data_to_save = mat
-            else:
-                data_to_save = {f"{self.try_name}_processed": emg_processed, f"{self.try_name}_raw": data}
-            sio.savemat(file_name, data_to_save)
+
         return emg_processed, data
 
     def _init_live_plot(self, multi=True):
@@ -424,7 +428,6 @@ class ComputeMvc:
             The current frame.
         """
         if self.plot_app is not None:
-            #plot_data = data if nb_frame < self.acquisition_rate else data[:, -self.mvc_windows:]
             plot_data = data if nb_frame*self.acquisition_rate < 5*self.frequency else data[:, -5*self.frequency:]
             self.plot_app.update_plot_window(self.plot_app.plot[0], plot_data, self.app, self.rplt, self.box)
 
@@ -438,55 +441,83 @@ class ComputeMvc:
         """
         Save and end the trial.
         """
-        print("Concatenate data for all trials.")
 
-        # Concatenate all trials from the tmp file.
-        # TO DO: Clean the tmp file, it's taking really old trials and including it to the mix
-        mat_content = sio.loadmat("_MVC_tmp.mat")
-        print("compute_mvc file", mat_content, "\n\n")
-
-        data_final = []
-        for i in range(len(self.try_list)):
-            if i == 0:
-                data_final = mat_content[f"{self.try_list[i]}_processed"]
-            else:
-                data_final_tmp = mat_content[f"{self.try_list[i]}_processed"]
-                data_final = np.append(data_final, data_final_tmp, axis=1)
-
-        save = input("Press 's' to save your data, other key to just return a list of MVC.\n")
+        save = input("Press 's' to save the trial data, other key to just return a list of MVC.\n")
         if save != "s":
             save = input("Data will not be saved. " "If you want to save press 's', if not, press enter.\n")
 
         print("Please wait during data processing (it could take some time)...")
-        emg_processed, data_raw = self._process_emg(data_final, save_tmp=False)
+        
+        # Get all the data from the tmp file and 
+        
+        # data_raw is the raw data as it comes from the server
+        # Don't need to process the data twice, it has already been saved inside the tmp file
+        # emg_processed, data_raw = self._process_emg(data_final, save_tmp=False)
 
-        mvc_list_max = np.ndarray((len(self.muscle_names), self.mvc_windows))
-        mvc_trials = emg_processed
         save = True if save == 's' else False
-        mvc = OfflineProcessing.compute_mvc(self.nb_muscles,
-                                            mvc_trials,
-                                            self.mvc_windows,
-                                            mvc_list_max,
-                                            None,#'_MVC_tmp_mat',
-                                            self.output_file, save)
+
+        # Load tmp trials data and make it numpy
+        df = pd.read_csv('df_trial_tmp.csv')    # Open csv file
+        if save:
+            df.to_csv("TRIALS{}".format(self.output_file), index=False, header=True)
+        df.drop('trial_index', axis=1, inplace=True)
+        df.drop('trial_name', axis=1, inplace=True)
+        mvc_trials = df.to_numpy().T # All the trials from tmp file
+
+        #mvc_list_max = np.ndarray((len(self.muscle_names), self.mvc_windows))
+        #mvc_trials = emg_processed
+
+        # TO DO: compute_mvc should work with tha data processed only, should not have 2388230 parameters
+        # mvc = OfflineProcessing.compute_mvc(self.nb_muscles,
+        #                                     mvc_trials,
+        #                                     self.mvc_windows,
+        #                                     mvc_list_max,
+        #                                     None,#'_MVC_tmp_mat',
+        #                                     self.output_file, save)
+
+        # Karl's version
+        mvc = OfflineProcessing.compute_mvc(mvc_trials)
+        # Save MVC
+        mvc_resh = np.reshape(mvc, (1, len(mvc))) # reshape to properly save DataFrame
+        df_mvc = pd.DataFrame(mvc_resh, columns = self.muscle_names)
+        df_mvc.to_csv("MVC{}".format(self.output_file), index=False, header=True)
+
         return mvc
+
+    def _delete_tmp(self):
+        """
+        Delete the temporary file used to store the trials.
+        """
+        file = 'df_trial_tmp.csv'
+        if (os.path.exists(file) and os.path.isfile(file)):
+            os.remove(file)
+            print("Temp file deleted")
+        else:
+            print("ERROR: file not found")
 
 if __name__ == "__main__":
 
-    # number of EMG electrode
-    n_electrode = 2
+    # Ask if the data will come from the server of ir random
+    with_connection = None
+    while with_connection not in ['y', 'n']:
+        with_connection = input("\nDo MVC with real data from server? (y, or n for random data): ")
+    mvc_with_connection = True if with_connection == 'y' else False
 
-    muscle_names = ["tri_long_1", "tri_long_2"]
-    # Run MVC
-    muscles_idx = (0, n_electrode - 1)
+    # if mvc_with_connection:
+    server_ip = "localhost" if mvc_with_connection else None
+    server_port = 5002 if mvc_with_connection else None
+
+    # Define number of muscles and muscle names
+    n_electrodes = int(input("\nHow many muscles will be used (e.g. for 2 muscles, write 2): "))
+    muscle_names = []
+    for i in range(n_electrodes):
+        muscle_names.append(input("Give a name to muscle #{}: ".format(i+1)))
 
     MVC = ComputeMvc(
-        # output_file=file_name,
-        test_with_connection=True,
+        with_connection=mvc_with_connection,
         muscle_names=muscle_names,
-        emg_frequency=1000,
-        acquisition_rate=100,
-        mvc_windows=1000
+        server_ip = server_ip,
+        server_port = server_port
     )
     
     # processing_method = OfflineProcessing().process_emg()
