@@ -41,9 +41,20 @@ class BitalinoClient:
         self.devices.append(new_device)
         
         self.client = bitalino.BITalino(self.address)
-        # self.client.start(rate, acq_channels)
-        # self.start_acquisition()
-    
+
+    def remove_device(self):
+        """
+        Remove a device from the Bitalino client.
+        Parameters
+        ----------
+        name : str
+            Name of the device to be removed.
+        """
+        self.devices.pop()
+
+    def close(self):
+        self.client.close()
+
     def start_acquisition(self):
         self.client.start(self.rate, self.acq_channels)
 
@@ -85,26 +96,10 @@ class BitalinoClient:
                 device_data = device_data.T
 
             except:
-                raise RuntimeError(f"Error in getting data from bitalino device.")            
+                raise RuntimeError("Error in getting data from bitalino device.")
+                # print("Error in getting data from bitalino device.")
+                # device_data = np.zeros((len(self.acq_channels), self.system_rate))
+
             all_device_data.append(device_data)
         
         return all_device_data
-
-    def get_markers_data(self, marker_names: list = None, subject_name: str = None):
-        raise RuntimeError("It's not possible to get markers data from bitalino.")
-
-    def get_force_plate_data(self):
-        raise RuntimeError("It's not possible to get force plate data from bitalino.")
-
-    @staticmethod
-    def init_client():
-        pass
-
-    @staticmethod
-    def get_latency():
-        return 0
-
-    @staticmethod
-    def get_frame():
-        return True
-

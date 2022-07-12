@@ -263,7 +263,7 @@ class ComputeMvc:
         """
         data = None
         if self.with_connection is True:
-            # TO DO, get e message to read info from server first, then moddify message
+            # TODO: get e message to read info from server first, then moddify message
             # create message
             type_of_data = ["emg"]
             message = Message(command=type_of_data,
@@ -508,6 +508,7 @@ if __name__ == "__main__":
     server_ip = "localhost" if mvc_with_connection else None
     server_port = 5002 if mvc_with_connection else None
 
+    # TODO: get number of sensors from the server
     # Define number of muscles and muscle names
     n_electrodes = int(input("\nHow many muscles will be used (e.g. for 2 muscles, write 2): "))
     muscle_names = []
@@ -521,6 +522,5 @@ if __name__ == "__main__":
         server_port = server_port
     )
     
-    # processing_method = OfflineProcessing().process_emg()
-    list_mvc = MVC.run() # show_data=True)
+    list_mvc = MVC.run()
     print(list_mvc)
