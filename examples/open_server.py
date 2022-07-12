@@ -2,11 +2,7 @@ from ast import Raise
 from logging import raiseExceptions
 from os import system
 from biosiglive.streaming.connection import Server
-# from biosiglive.streaming.client import Message
 from biosiglive.interfaces.bitalino_interface import BitalinoClient
-# from biosiglive.processing.mappEMG import Mapper
-# from biosiglive.processing.mappEMG import EMGprocess
-# from biosiglive.processing.mappEMG import Emitter
 import numpy as np
 import threading
 
@@ -31,11 +27,8 @@ def run_bitalino_acquisition(address_bitalino, rate, system_rate, acq_channels):
     while True:
         try:
             # get_device_data returns np with the bitalino data collected in the shape (len(acq_channels), system_rate)
-            # LOCK.acquire()
             data_tmp_raw = bitalino_interface.get_device_data(device_name="Bitalino")[0]
             data_tmp = (data_tmp_raw/(2**10)-0.5)*3.3/1009*1000
-            
-            # LOCK.release()
         except:
             print("\nReconnecting Bitalino...\n")
             bitalino_interface.close()
@@ -46,7 +39,7 @@ def run_bitalino_acquisition(address_bitalino, rate, system_rate, acq_channels):
 
 if __name__ == '__main__':
 
-    server = Server(ip="localhost", port=5004, type='TCP')
+    server = Server(ip="localhost", port=5005, type='TCP')
     server.start()
 
     print("\nServer starting...")
@@ -64,7 +57,8 @@ if __name__ == '__main__':
 
     #### set acquisition channels ####
     acq_channels = input("\nEnter list of acquisition channels (e.g. for A1 A2 A3, write 1 2 3): ").split(" ")
-    for i in range(len(acq_channels)):
+    n_electrode = len(acq_channels)
+    for i in range(n_electrode):
         acq_channels[i] = int(acq_channels[i]) - 1
 
     #### set sampling rate according to 2000/100 ratio ####
@@ -88,14 +82,9 @@ if __name__ == '__main__':
             data_tmp = np.random.randint(1024, size=(len(acq_channels), system_rate)) # data range [0.0, 1.0)
             data_tmp = (data_tmp/(2**10)-0.5)*3.3/1009*1000
                 
-        # get data_tmp from global variable
-        # converting raw decimals to mV
-        # LOCK.acquire()
-        # data_tmp_mV = (data_tmp/(2**10)-0.5)*3.3/1009*1000
-        # LOCK.release()
         # create dictionary to send
         LOCK.acquire()
-        data = {"emg_server": data_tmp, "sampling_rate": rate, "system_rate": system_rate}
+        data = {"emg_server": data_tmp, "n_electrode": n_electrode, "sampling_rate": rate, "system_rate": system_rate}
         LOCK.release()
 
         try:

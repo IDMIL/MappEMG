@@ -96,6 +96,7 @@ class Connection:
                     data_to_prepare["emg_server"] = emg
                     data_to_prepare["sampling_rate"] = data["sampling_rate"] 
                     data_to_prepare["system_rate"] = data["system_rate"]
+                    data_to_prepare["n_electrode"] = data["n_electrode"]
                 else:
                     raise RuntimeError(f"Unknown command '{i}'. Command must be :'emg'")
         else:

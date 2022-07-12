@@ -1,13 +1,7 @@
-import scipy.io as sio
-import time
+
 from biosiglive.streaming.client import Client, Message
 import numpy as np
 import pandas as pd
-try:
-    from pythonosc.udp_client import SimpleUDPClient
-except ModuleNotFoundError:
-    pass
-from biosiglive.io.save_data import add_data_to_pickle
 from biosiglive.processing.mappEMG import Mapper
 from biosiglive.processing.mappEMG import EMGprocess
 from biosiglive.processing.mappEMG import Emitter
@@ -17,11 +11,28 @@ if __name__ == '__main__':
 
     print("Client starting...")
 
-    # Set program variables
-    read_freq = 100  # Be sure that it's the same than server read frequency
-    system_rate = read_freq//20 # Noa added this
-    n_electrode = 3
     type_of_data = ["emg"]
+
+    # Server's host and port
+    input_host_ip = input("\nConnect to host address (leave empty for \"localhost\"): ")
+    host_ip = 'localhost' if input_host_ip == '' else input_host_ip
+    input_host_port = input("\nConnect to host address (leave empty for \"5005\"): ")
+    host_port = 5005 if input_host_port == '' else int(input_host_port)
+
+    
+    dummy_message = Message(command=["emg"],
+                      read_frequency=100,
+                      nb_frame_to_get=1,
+                      get_raw_data=False,
+                      mvc_list=None)
+    client = Client(server_ip=host_ip, port=host_port, type="TCP")
+
+    # Get data streamed from server
+    data = client.get_data(dummy_message)
+    sleep(1)
+    system_rate = data['system_rate'][0]
+    read_freq = data['sampling_rate'][0]
+    n_electrode = data['n_electrode'][0]
 
     # Load MVC data from previous trials or random
     load_mvc = None
@@ -35,13 +46,15 @@ if __name__ == '__main__':
         list_mvc = pd.read_csv(mvc_file)           # Open .csv file
         list_mvc = list_mvc.to_numpy().T.tolist()  # Get MVC in the proper shape
 
-    # Run streaming data
-    host_ip = 'localhost'
-    host_port = 5004
-    osc_server = True
-    save_data = False
-    print_data = False
-    count = 0
+    # Prepare Message that will be used to get data from server
+    # Number of frames to get comes from the server
+    # depending on the device frequency
+    message = Message(command=type_of_data,
+                      read_frequency=read_freq,
+                      nb_frame_to_get=system_rate,
+                      get_raw_data=False,
+                      mvc_list=list_mvc)
+
 
     ############## setup for post processing ##############
 
@@ -59,7 +72,7 @@ if __name__ == '__main__':
     post_processor = EMGprocess()
    
     ### initializing mapper ###
-    mapper = Mapper(n_electrode,system_rate) 
+    mapper = Mapper(n_electrode, system_rate) 
 
     ### initializing phones to which we send the haptics ###
     emitter = Emitter()
@@ -82,32 +95,8 @@ if __name__ == '__main__':
 
     ########################################################
 
-    dummy_message = Message(command=type_of_data,
-                      read_frequency=read_freq,
-                      nb_frame_to_get=1,
-                      get_raw_data=False,
-                      mvc_list=list_mvc)
-    client = Client(server_ip=host_ip, port=host_port, type="TCP")
+    print("\nStart receiving from server...\n")
 
-    # Get data streamed from server
-    data = client.get_data(dummy_message)
-    sleep(1)
-    system_rate = data['system_rate'][0]
-
-    # Number of frames to get comes from the server
-    # depending on the device frequency
-    message = Message(command=type_of_data,
-                      read_frequency=read_freq,
-                      nb_frame_to_get=system_rate,
-                      get_raw_data=False,
-                      mvc_list=list_mvc)
-
-    
-    # Gets the data from the server.
-        # Create a client to get data from server
-    client = Client(server_ip=host_ip, port=host_port, type="TCP")
-    
-    print("\nStart receiving from server")
     while True:
 
         # Gets the data from the server.
@@ -118,15 +107,9 @@ if __name__ == '__main__':
 
         # Get only the emg data as a numpy array.
         emg = np.array(data['emg_server']) # you can also get sampling_rate and system_rate
-        print(emg) # emg.shape should be (2, 5) with bitalino frequency = 100 and 2 sensors
-
-        # TODO: Code to get MVC was included above, now what do we do with MVC?
-        # The MVC value is found after processing data in compute_mvc.py
 
         ##### PROCESSING #####
-        print(list_mvc)
         perc_mvc = (emg/list_mvc)
-        print(perc_mvc)
         post_processor.input(perc_mvc) # inputting data to be processed
         post_processor.clip() # clipping data in case it is not between 0 and 1
         post_processor.slide() # smoothing the data
@@ -137,7 +120,6 @@ if __name__ == '__main__':
         weighted_avr = mapper.weighted_average(weights)
         if emit:
             for w in weighted_avr[0]:
-                #print('sent data to phone')
                 emitter.sendMessage(mapper.toFreqAmpl(w))
                 sleep(0.5)
 

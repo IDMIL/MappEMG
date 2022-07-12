@@ -8,7 +8,6 @@ from biosiglive.processing.data_processing import OfflineProcessing
 from biosiglive.gui.plot import LivePlot, Plot
 from time import time, sleep
 import os
-import scipy.io as sio
 import numpy as np
 import pandas as pd
 
@@ -75,9 +74,6 @@ class ComputeMvc:
         else:
             self.frequency = 1000
             self.acquisition_rate = 50
-
-        # Other attributes
-        # self.mvc_windows = 1000
 
         self.show_data = False
         self.plot_app, self.rplt, self.layout, self.app, self.box = None, None, None, None, None
@@ -450,12 +446,6 @@ class ComputeMvc:
 
         print("Please wait during data processing (it could take some time)...")
         
-        # Get all the data from the tmp file and 
-        
-        # data_raw is the raw data as it comes from the server
-        # Don't need to process the data twice, it has already been saved inside the tmp file
-        # emg_processed, data_raw = self._process_emg(data_final, save_tmp=False)
-
         save = True if save == 's' else False
 
         # Load tmp trials data and make it numpy
@@ -466,18 +456,6 @@ class ComputeMvc:
         df.drop('trial_name', axis=1, inplace=True)
         mvc_trials = df.to_numpy().T # All the trials from tmp file
 
-        #mvc_list_max = np.ndarray((len(self.muscle_names), self.mvc_windows))
-        #mvc_trials = emg_processed
-
-        # TO DO: compute_mvc should work with tha data processed only, should not have 2388230 parameters
-        # mvc = OfflineProcessing.compute_mvc(self.nb_muscles,
-        #                                     mvc_trials,
-        #                                     self.mvc_windows,
-        #                                     mvc_list_max,
-        #                                     None,#'_MVC_tmp_mat',
-        #                                     self.output_file, save)
-
-        # Karl's version
         mvc = OfflineProcessing.compute_mvc(mvc_trials)
         # Save MVC
         mvc_resh = np.reshape(mvc, (1, len(mvc))) # reshape to properly save DataFrame
@@ -508,7 +486,7 @@ if __name__ == "__main__":
     # TODO: Ask for these information before connecting. Right now they are hardcoded.
     # if mvc_with_connection:
     server_ip = "localhost" if mvc_with_connection else None
-    server_port = 5002 if mvc_with_connection else None
+    server_port = 5004 if mvc_with_connection else None
 
     # TODO: get number of sensors from the server
     # Define number of muscles and muscle names
