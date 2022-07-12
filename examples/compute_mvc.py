@@ -11,7 +11,6 @@ import os
 import scipy.io as sio
 import numpy as np
 import pandas as pd
-from typing import Union
 
 from biosiglive.streaming.client import Client, Message
 
@@ -170,9 +169,9 @@ class ComputeMvc:
             c = 0
             trial_emg = self._mvc_trial(duration, nb_frame, var)
             # Get processed_emg from the trial_emg
-            processed_emg, raw_emg = self._process_emg(trial_emg)
+            # processed_emg, raw_emg = self._process_emg(trial_emg) #COMMENTING OUT: TRYING WITHOUT PROCESSING
             # Plot the processed and raw emgs
-            self._plot_trial(raw_emg, processed_emg)
+            # self._plot_trial(raw_emg, processed_emg) #COMMENTING OUT: TRYING WITHOUT PROCESSING
 
             task = input(
                 "Press 'c' to do another MVC trial, 'r' to repeat this trial, or 'q' to quit.\n"
@@ -188,8 +187,10 @@ class ComputeMvc:
             if task == "c" or "q":
 
                 # Save emg processed to csv file
-                df = pd.DataFrame(processed_emg.T, columns = self.muscle_names)
-                df.insert(0, 'trial_index', list(range(0, processed_emg.shape[1])))
+                # df = pd.DataFrame(processed_emg.T, columns = self.muscle_names) #COMMENTING OUT: TRYING WITHOUT PROCESSING
+                df = pd.DataFrame(trial_emg.T, columns = self.muscle_names) # REPLACES LINE ABOVE, USES RAW DATA INSTEAD OF PROCESSED
+                # df.insert(0, 'trial_index', list(range(0, processed_emg.shape[1]))) #COMMENTING OUT: TRYING WITHOUT PROCESSING
+                df.insert(0, 'trial_index', list(range(0, trial_emg.shape[1]))) # REPLACES LINE ABOVE, USES RAW DATA INSTEAD OF PROCESSED
                 df.insert(0, 'trial_name', self.try_name)
                 df.to_csv('df_trial_tmp.csv', mode='a', index=False, header=self.first_trial) # append
                 if self.first_trial == True:
@@ -202,7 +203,8 @@ class ComputeMvc:
 
             elif task == "r":
                 # Do not save trial and continue
-                processed_emg, raw_emg = None, None
+                # processed_emg, raw_emg = None, None #COMMENTING OUT: TRYING WITHOUT PROCESSING
+                trial_emg = None
 
     def _init_trial(self):
         """

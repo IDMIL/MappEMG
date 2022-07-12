@@ -11,7 +11,7 @@ from biosiglive.io.save_data import add_data_to_pickle
 from biosiglive.processing.mappEMG import Mapper
 from biosiglive.processing.mappEMG import EMGprocess
 from biosiglive.processing.mappEMG import Emitter
-from time import sleep, time
+from time import sleep
 
 if __name__ == '__main__':
 
@@ -45,33 +45,30 @@ if __name__ == '__main__':
 
     ############## setup for post processing ##############
 
-    # Load MVC data from previous trials or random
-    connect_haptics = None
-    while connect_haptics not in ['y', 'n']:
-        connect_haptics = input("\nDo you want to connect cellphones? ('y' or 'n'): ")
-
-    if connect_haptics == 'y':
-
-        ### initializing weights ###
+    ### initializing weights ###
+    weights_raw = input("\nAttribute weights between 0 and 1 to each sensor (e.g for A1 A2 A3, write 0.45 1 0): ").split(" ")
+    while len(weights_raw) != n_electrode or not (all(float(w) <= 1 for w in weights_raw)):
+        print("\nNumber of weights does not correspond to number of channels or values are not between 0 and 1...")
         weights_raw = input("\nAttribute weights between 0 and 1 to each sensor (e.g for A1 A2 A3, write 0.45 1 0): ").split(" ")
-        while len(weights_raw) != n_electrode:
-            print("\nNumber of weights does not correspond to number of channels")
-            weights_raw = input("\nAttribute weights between 0 and 1 to each sensor (e.g for A1 A2 A3, write 0.45 1 0): ").split(" ")
+    
+    weights = np.empty((1,n_electrode))
+    for i, w in enumerate(weights_raw):
+        weights[0][i] = float(w)
+    
+    ### initializing post processor ###
+    post_processor = EMGprocess()
+   
+    ### initializing mapper ###
+    mapper = Mapper(n_electrode,system_rate) 
 
-        weights = np.empty((1,n_electrode))
-        for i, w in enumerate(weights_raw):
-            weights[0][i] = float(w)
-
-        ### initializing post processor ###
-        post_processor = EMGprocess()
-
-        ### initializing mapper ###
-        mapper = Mapper(n_electrode,system_rate) 
-
-        ### initializing phones to which we send the haptics ###
-        emitter = Emitter()
-        n_devices = input('\nHow many devices with the haptics app would you like to connect? ')
-        n = 1
+    ### initializing phones to which we send the haptics ###
+    emitter = Emitter()
+    emit = True
+    n_devices = input('\nHow many devices with the haptics app would you like to connect? ')
+    if int(n_devices) == 0:
+        emit = False
+    n = 1
+    if emit == True:
         while n != int(n_devices)+ 1:
             ip = input(f'\nIP of device number {n} (e.g: XXX.XXX.X.X): ')
             port = input(f'\nPORT of device number {n} (e.g: 2222): ')
@@ -126,22 +123,22 @@ if __name__ == '__main__':
         # TODO: Code to get MVC was included above, now what do we do with MVC?
         # The MVC value is found after processing data in compute_mvc.py
 
-        # list_mvc  ---> shape: (1, n_muscles), (n_muscles, 1)
+        ##### PROCESSING #####
+        print(list_mvc)
+        perc_mvc = (emg/list_mvc)
+        print(perc_mvc)
+        post_processor.input(perc_mvc) # inputting data to be processed
+        post_processor.clip() # clipping data in case it is not between 0 and 1
+        post_processor.slide() # smoothing the data
+        data_tmp = post_processor.scale(1) # for now scaling to 1 as it's random data 
 
-
-        if connect_haptics == 'y': 
-
-            ##### PROCESSING #####
-            post_processor.input(emg) # inputting data to be processed
-            post_processor.clip() # clipping data in case it is not between 0 and 1
-            post_processor.slide() # smoothing the data
-            data_tmp = post_processor.scale(1) # for now scaling to 1 as it's random data 
-
-            ##### MAPPING & EMITTING #####
-            mapper.input(data_tmp)
-            weighted_avr = mapper.weighted_average(weights)
+        ##### MAPPING & EMITTING #####
+        mapper.input(data_tmp)
+        weighted_avr = mapper.weighted_average(weights)
+        if emit:
             for w in weighted_avr[0]:
                 #print('sent data to phone')
                 emitter.sendMessage(mapper.toFreqAmpl(w))
+                sleep(0.5)
 
        
