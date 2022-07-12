@@ -33,7 +33,7 @@ if __name__ == '__main__':
     else:
         mvc_file = input("\nInput name of the MVC .csv file (for example \"MVC_20220707-1915.csv\"): ")
         list_mvc = pd.read_csv(mvc_file)    # Open .csv file
-        list_mvc = list_mvc.to_numpy()[0]   # Get MVC in the proper shape
+        list_mvc = list_mvc.to_numpy().T.tolist()   # Get MVC in the proper shape
 
     # Run streaming data
     host_ip = 'localhost'
@@ -52,8 +52,8 @@ if __name__ == '__main__':
 
     ### initializing weights ###
     weights_raw = input("\nAttribute weights between 0 and 1 to each sensor (e.g for A1 A2 A3, write 0.45 1 0): ").split(" ")
-    while len(weights_raw) != n_electrode:
-        print("\nNumber of weights does not correspond to number of channels")
+    while len(weights_raw) != n_electrode or not (all(float(w) <= 1 for w in weights_raw)):
+        print("\nNumber of weights does not correspond to number of channels or values are not between 0 and 1...")
         weights_raw = input("\nAttribute weights between 0 and 1 to each sensor (e.g for A1 A2 A3, write 0.45 1 0): ").split(" ")
     
     weights = np.empty((1,n_electrode))
@@ -68,18 +68,22 @@ if __name__ == '__main__':
 
     ### initializing phones to which we send the haptics ###
     emitter = Emitter()
+    emit = True
     n_devices = input('\nHow many devices with the haptics app would you like to connect? ')
+    if int(n_devices) == 0:
+        emit = False
     n = 1
-    while n != int(n_devices)+ 1:
-        ip = input(f'\nIP of device number {n} (e.g: XXX.XXX.X.X): ')
-        port = input(f'\nPORT of device number {n} (e.g: 2222): ')
-        ip = str(ip)
-        port = int(port)
-        try:
-            emitter.add_device_client(ip,port)
-            n = n + 1
-        except:
-            print("Invalid IP or PORT, try again...")
+    if emit == True:
+        while n != int(n_devices)+ 1:
+            ip = input(f'\nIP of device number {n} (e.g: XXX.XXX.X.X): ')
+            port = input(f'\nPORT of device number {n} (e.g: 2222): ')
+            ip = str(ip)
+            port = int(port)
+            try:
+                emitter.add_device_client(ip,port)
+                n = n + 1
+            except:
+                print("Invalid IP or PORT, try again...")
 
     ########################################################
 
@@ -120,7 +124,10 @@ if __name__ == '__main__':
         # The MVC value is found after processing data in compute_mvc.py
 
         ##### PROCESSING #####
-        post_processor.input(emg) # inputting data to be processed
+        print(list_mvc)
+        perc_mvc = (emg/list_mvc)
+        print(perc_mvc)
+        post_processor.input(perc_mvc) # inputting data to be processed
         post_processor.clip() # clipping data in case it is not between 0 and 1
         post_processor.slide() # smoothing the data
         data_tmp = post_processor.scale(1) # for now scaling to 1 as it's random data 
@@ -128,8 +135,10 @@ if __name__ == '__main__':
         ##### MAPPING & EMITTING #####
         mapper.input(data_tmp)
         weighted_avr = mapper.weighted_average(weights)
-        for w in weighted_avr[0]:
-            #print('sent data to phone')
-            emitter.sendMessage(mapper.toFreqAmpl(w))
+        if emit:
+            for w in weighted_avr[0]:
+                #print('sent data to phone')
+                emitter.sendMessage(mapper.toFreqAmpl(w))
+                sleep(0.5)
 
        
