@@ -59,11 +59,24 @@ if __name__ == '__main__':
     ############## setup for post processing ##############
 
     ### initializing weights ###
-    weights_raw = input("\nAttribute weights between 0 and 1 to each sensor (e.g for A1 A2 A3, write 0.45 1 0): ").split(" ")
-    while len(weights_raw) != n_electrode or not (all(float(w) <= 1 for w in weights_raw)):
-        print("\nNumber of weights does not correspond to number of channels or values are not between 0 and 1...")
-        weights_raw = input("\nAttribute weights between 0 and 1 to each sensor (e.g for A1 A2 A3, write 0.45 1 0): ").split(" ")
-    
+    boo = True # keeps track that all values can be cast to float, basically serves as a while true loop
+    weights_raw = [''] # keeps track no empty string is passed
+    while weights_raw == [''] or boo:
+        if weights_raw == ['']: # if empty string is passed
+            weights_raw = input("\nAttribute weights between 0 and 1 to each sensor (e.g for A1 A2 A3, write 0.45 1 0): ").split(" ")
+        elif boo: # boo is always true so that this is always checked
+            try:
+                weights_raw = [float(w) for w in weights_raw]
+                if (len(weights_raw) != n_electrode or not (all(float(w) <= 1 for w in weights_raw))):
+                    print("\nNumber of weights does not correspond to number of channels or values are not between 0 and 1...")
+                    weights_raw = input("\nAttribute weights between 0 and 1 to each sensor (e.g for A1 A2 A3, write 0.45 1 0): ").split(" ")
+                else:
+                    break
+            except ValueError:
+                print("\nYou must input a valid weight between 0 and 1.")
+                weights_raw = input("\nAttribute weights between 0 and 1 to each sensor (e.g for A1 A2 A3, write 0.45 1 0): ").split(" ")
+                  
+
     weights = np.empty((1,n_electrode))
     for i, w in enumerate(weights_raw):
         weights[0][i] = float(w)
@@ -77,8 +90,19 @@ if __name__ == '__main__':
     ### initializing phones to which we send the haptics ###
     emitter = Emitter()
     emit = True
-    n_devices = input('\nHow many devices with the haptics app would you like to connect? ')
-    if int(n_devices) == 0:
+    n_devices = None
+    while True:
+        try:
+            n_devices = int(n_devices)
+            if n_devices >= 0:
+                break
+        except ValueError:
+            n_devices = input('\nHow many devices with the haptics app would you like to connect? ')
+        except TypeError:
+            n_devices = input('\nHow many devices with the haptics app would you like to connect? ')
+
+
+    if n_devices == 0:
         emit = False
     n = 1
     if emit == True:
