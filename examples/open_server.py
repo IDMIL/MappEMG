@@ -56,13 +56,36 @@ if __name__ == '__main__':
             address_bitalino = "/dev/tty.BITalino-7E-19-DevB"
 
     #### set acquisition channels ####
-    acq_channels = input("\nEnter list of acquisition channels (e.g. for A1 A2 A3, write 1 2 3): ").split(" ")
+    acq_channels = ['']
+    boo = True
+    while acq_channels == [''] or boo:
+        if acq_channels == ['']:
+            acq_channels = input("\nEnter list of acquisition channels (e.g. for A1 A2 A3, write 1 2 3): ").split(" ")
+        elif boo: #always true so always checked
+            try:
+                acq_channels = [int(c) for c in acq_channels]
+                if not all(int(channel) > 0 and int(channel) < 7 for channel in acq_channels):
+                    print("\nInvalid acquisition channels (make sure they are seperated by a space...)")
+                    acq_channels = input("\nEnter list of acquisition channels (e.g. for A1 A2 A3, write 1 2 3): ").split(" ")
+                else:
+                    break
+            except ValueError:
+                acq_channels = input("\nEnter list of acquisition channels (e.g. for A1 A2 A3, write 1 2 3): ").split(" ")
+
+    
     n_electrode = len(acq_channels)
     for i in range(n_electrode):
         acq_channels[i] = int(acq_channels[i]) - 1
 
     #### set sampling rate according to 2000/100 ratio ####
-    rate = int(input("\nEnter sampling rate (1, 10, 100, or 1000): "))
+    rate = None
+    while rate not in [1,10,100,1000]:
+        rate = input("\nEnter sampling rate (1, 10, 100, or 1000): ")
+        try:
+            rate = int(rate)
+        except ValueError:
+            print("\nSampling rate must be a valid number.")
+
     system_rate = rate//20
     if system_rate == 0: system_rate = 1 
 
