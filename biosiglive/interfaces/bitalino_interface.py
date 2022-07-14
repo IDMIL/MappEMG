@@ -97,8 +97,6 @@ class BitalinoClient:
 
             except:
                 raise RuntimeError("Error in getting data from bitalino device.")
-                # print("Error in getting data from bitalino device.")
-                # device_data = np.zeros((len(self.acq_channels), self.system_rate))
 
             all_device_data.append(device_data)
         

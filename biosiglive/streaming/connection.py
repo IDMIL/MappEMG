@@ -32,7 +32,6 @@ class Connection:
         self.ports = [ports] if not isinstance(ports, list) else ports
         self.message_queues = None
         self.buff_size = 100000
-        self.acquisition_rate = 100
 
     def _prepare_data(self, message: dict, data: dict):
         """
@@ -51,26 +50,16 @@ class Connection:
             The data prepared to be sent.
 
         """
-        read_frequency = message["read_frequency"]
-        raw_data = message["raw_data"]
+        
         nb_frames_to_get = message["nb_frames_to_get"] if message["nb_frames_to_get"] else 1
 
-        if self.acquisition_rate < read_frequency:
-            raise RuntimeError(f"Acquisition rate ({self.acquisition_rate}) is lower than read "
-                               f"frequency ({read_frequency}).")
-        else:
-            ratio = int(self.acquisition_rate / read_frequency)
-        data_to_prepare = self.__data_to_prepare(message, data)
-        prepared_data = self.__check_and_adjust_dims(data_to_prepare, ratio, raw_data, nb_frames_to_get)
-        # if message["get_names"]:
-        #     prepared_data["marker_names"] = data["marker_names"]
-        #     prepared_data["emg_names"] = data["emg_names"]
-        # if "absolute_time_frame" in data.keys():
-        #     prepared_data["absolute_time_frame"] = data["absolute_time_frame"]
+        data_to_prepare = self.__data_to_prepare(data)
+        prepared_data = self.__check_and_adjust_dims(data_to_prepare, nb_frames_to_get)
+
         return prepared_data
 
     @staticmethod
-    def __data_to_prepare(message: dict, data: dict):
+    def __data_to_prepare(data: dict):
         """
         Prepare the device data to send.
 
@@ -89,23 +78,19 @@ class Connection:
 
         data_to_prepare = {}
 
-        if len(message["command"]) != 0:
-            for i in message["command"]:
-                if i == "emg":
-                    emg = data["emg_server"]
-                    data_to_prepare["emg_server"] = emg
-                    data_to_prepare["sampling_rate"] = data["sampling_rate"] 
-                    data_to_prepare["system_rate"] = data["system_rate"]
-                    data_to_prepare["n_electrode"] = data["n_electrode"]
-                else:
-                    raise RuntimeError(f"Unknown command '{i}'. Command must be :'emg'")
-        else:
-            raise RuntimeError(f"No command received.")
+        try:
+            emg = data["emg_server"]
+            data_to_prepare["emg_server"] = emg
+            data_to_prepare["sampling_rate"] = data["sampling_rate"] 
+            data_to_prepare["system_rate"] = data["system_rate"]
+            data_to_prepare["n_electrode"] = data["n_electrode"]
+        except:
+            raise RuntimeError(f"Wrong message format.")
 
         return data_to_prepare
 
     @staticmethod
-    def __check_and_adjust_dims(data: dict, ratio: int, raw_data: bool = False, nb_frames_to_get: int = 1):
+    def __check_and_adjust_dims(data: dict, nb_frames_to_get: int = 1):
         """
         Check and adjust the dimensions of the data to send.
 
@@ -113,10 +98,6 @@ class Connection:
         ----------
         data : dict
             The data to check and adjust.
-        ratio : int
-            The ratio between the acquisition rate and the read frequency.
-        raw_data : bool
-            If the raw data must be sent (default is False).
         nb_frames_to_get : int
             The number of frames to get (default is 1).
 
@@ -127,21 +108,10 @@ class Connection:
         """
 
         for key in data.keys():
-            if "sample" not in key:
-                if isinstance(data[key], int):
-                    data[key] = [data[key]]
-                elif len(data[key].shape) == 2:
-                    if key != "raw_emg":
-                        data[key] = data[key][:, ::ratio]
-                    if raw_data and key == "raw_emg":
-                        nb_frames_to_get = data["emg_sample"] * nb_frames_to_get
-                    data[key] = data[key][:, -nb_frames_to_get:].tolist()
-                elif len(data[key].shape) == 3:
-                    if key != "raw_imu":
-                        data[key] = data[key][:, :, ::ratio]
-                    if raw_data and key == "raw_imu":
-                        nb_frames_to_get = data["imu_sample"] * nb_frames_to_get
-                    data[key] = data[key][:, :, -nb_frames_to_get:].tolist()
+            if isinstance(data[key], int):
+                data[key] = [data[key]]
+            elif len(data[key].shape) == 2:
+                data[key] = data[key][:, :nb_frames_to_get].tolist()
 
         return data
 
@@ -193,6 +163,12 @@ class Server(Connection):
         except ConnectionError:
             raise RuntimeError("Unknown error. Server is not listening.")
 
+    def close(self):
+        """
+        Close the server.
+        """
+        self.server.close()
+
     def client_listening(self, data: dict):
         """
         Listen to the client.
@@ -219,13 +195,12 @@ class Server(Connection):
         connection : socket.socket
             The connection to send the data to.
         """
-        # if self.optim is not True:
-        #     print("Sending data to client...")
+
         encoded_data = json.dumps(data).encode()
         encoded_data = struct.pack('>I', len(encoded_data)) + encoded_data
         try:
             connection.sendall(encoded_data)
-            print(f"data sent : {data}")
+            # print(f"data sent : {data}")
         except ConnectionError:
             pass
 
@@ -271,15 +246,15 @@ class OscClient(Connection):
                 emg_proc = np.array(data["emg_proc"])[:, -1:]
                 emg_proc = emg_proc.reshape(emg_proc.shape[0])
                 data_to_return.append(emg_proc.tolist())
-            elif key == "imu":
-                imu = np.array(data["imu_proc"])[:, :, -1:]
-                data_to_return.append(imu.tolist())
-                accel_proc = imu[:, :3, :]
-                accel_proc = accel_proc.reshape(accel_proc.shape[0])
-                data_to_return.append(accel_proc.tolist())
-                gyro_proc = imu[:, 3:6, :]
-                gyro_proc = gyro_proc.reshape(gyro_proc.shape[0])
-                data_to_return.append(gyro_proc.tolist())
+            # elif key == "imu":
+            #     imu = np.array(data["imu_proc"])[:, :, -1:]
+            #     data_to_return.append(imu.tolist())
+            #     accel_proc = imu[:, :3, :]
+            #     accel_proc = accel_proc.reshape(accel_proc.shape[0])
+            #     data_to_return.append(accel_proc.tolist())
+            #     gyro_proc = imu[:, 3:6, :]
+            #     gyro_proc = gyro_proc.reshape(gyro_proc.shape[0])
+            #     data_to_return.append(gyro_proc.tolist())
             else:
                 raise RuntimeError(f"Unknown device ({key}) to send. Possible devices are 'emg' and 'imu'.")
 
@@ -300,11 +275,11 @@ class OscClient(Connection):
         for key in device_to_send:
             if key == "emg":
                 self.osc[0].send_message("/emg", data[0])
-            elif key == "imu":
-                idx = 1 if key in "emg" in device_to_send else 0
-                self.osc[0].send_message("/imu/", data[idx])
-                self.osc[0].send_message("/accel/", data[idx + 1])
-                self.osc[0].send_message("/gyro/", data[idx + 2])
+            # elif key == "imu":
+            #     idx = 1 if key in "emg" in device_to_send else 0
+            #     self.osc[0].send_message("/imu/", data[idx])
+            #     self.osc[0].send_message("/accel/", data[idx + 1])
+            #     self.osc[0].send_message("/gyro/", data[idx + 2])
             else:
                 raise RuntimeError(f"Unknown device ({key}) to send. Possible devices are 'emg' and 'imu'.")
 

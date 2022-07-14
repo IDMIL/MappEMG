@@ -38,20 +38,27 @@ def run_bitalino_acquisition(address_bitalino, rate, system_rate, acq_channels):
         bitalino_interface.add_device("Bitalino", rate=rate, system_rate=system_rate, acq_channels=acq_channels)
         bitalino_interface.start_acquisition()
     except:
-        print("Could not create Bitalino Client. Possibly bad address")
+        raise RuntimeError("Could not create Bitalino connection. Make sure you bluetooth is activated and you have the correct bitalino address.")
 
     while True:
         try:
             # get_device_data returns np with the bitalino data collected in the shape (len(acq_channels), system_rate)
             data_tmp_raw = bitalino_interface.get_device_data(device_name="Bitalino")[0]
+            LOCK.acquire()
             data_tmp = (data_tmp_raw/(2**10)-0.5)*3.3/1009*1000
             
+            print("Got data")
+            LOCK.release()
+            sleep(0.1)
         except:
-            print("\nReconnecting Bitalino...\n")
-            bitalino_interface.close()
-            bitalino_interface = BitalinoClient(ip=address_bitalino)
-            bitalino_interface.add_device("Bitalino", rate=rate, system_rate=system_rate, acq_channels=acq_channels)
-            bitalino_interface.start_acquisition()
+            try:
+                print("\nReconnecting Bitalino...\n")
+                bitalino_interface.close()
+                bitalino_interface = BitalinoClient(ip=address_bitalino)
+                bitalino_interface.add_device("Bitalino", rate=rate, system_rate=system_rate, acq_channels=acq_channels)
+                bitalino_interface.start_acquisition()
+            except:
+                continue
 
 
 if __name__ == '__main__':
@@ -116,9 +123,12 @@ if __name__ == '__main__':
         
     print("\nStart streaming...")
 
+    # karl_tmp = np.array([[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])
+
     while True:
 
         if with_connection == 'n':
+            # data_tmp = karl_tmp # np.array(list(range(0, 100)))
             data_tmp = np.random.randint(1024, size=(len(acq_channels), system_rate)) # data range [0.0, 1.0)
             data_tmp = (data_tmp/(2**10)-0.5)*3.3/1009*1000 
                 
@@ -135,5 +145,9 @@ if __name__ == '__main__':
 
         try:
             server.client_listening(data)
-        except:
+        except KeyboardInterrupt:
+            server.close()
+            print("\nClosing server...\n")
+            exit(0)
+        else:
             continue # in case client_listening failes, try again next loop
