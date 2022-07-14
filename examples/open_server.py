@@ -3,9 +3,25 @@ from logging import raiseExceptions
 from os import system
 from biosiglive.streaming.connection import Server
 from biosiglive.interfaces.bitalino_interface import BitalinoClient
+from biosiglive.streaming.client import Client, Message
 import numpy as np
 import threading
+from biosiglive.processing.data_processing import OfflineProcessing
+from time import sleep
 
+### SETTING UP PROCESSOR ###
+
+emg_processing = OfflineProcessing()
+emg_processing.bpf_lcut = 10
+emg_processing.bpf_hcut = 425
+emg_processing.lpf_lcut = 5.0
+emg_processing.lp_butter_order = 4
+emg_processing.bp_butter_order = 4
+emg_processing.ma_win = 200
+processor = emg_processing.process_emg
+
+# #input here data to be processed
+#processor.emg_processing(data, self.frequency, pyomeca=self.low_pass, ma=self.moving_average)
 # mutex
 LOCK = threading.Lock()
 
@@ -29,6 +45,7 @@ def run_bitalino_acquisition(address_bitalino, rate, system_rate, acq_channels):
             # get_device_data returns np with the bitalino data collected in the shape (len(acq_channels), system_rate)
             data_tmp_raw = bitalino_interface.get_device_data(device_name="Bitalino")[0]
             data_tmp = (data_tmp_raw/(2**10)-0.5)*3.3/1009*1000
+            
         except:
             print("\nReconnecting Bitalino...\n")
             bitalino_interface.close()
@@ -103,12 +120,18 @@ if __name__ == '__main__':
 
         if with_connection == 'n':
             data_tmp = np.random.randint(1024, size=(len(acq_channels), system_rate)) # data range [0.0, 1.0)
-            data_tmp = (data_tmp/(2**10)-0.5)*3.3/1009*1000
+            data_tmp = (data_tmp/(2**10)-0.5)*3.3/1009*1000 
                 
         # create dictionary to send
         LOCK.acquire()
-        data = {"emg_server": data_tmp, "n_electrode": n_electrode, "sampling_rate": rate, "system_rate": system_rate}
+        data_to_send = data_tmp.copy()
         LOCK.release()
+        # processing the data
+        processed_data_to_send, data_not_processed = processor(data_to_send, rate, pyomeca=False, ma=True) # processing from amadeo, ma is moving average/pyomeca is low pass      
+        # creating data dict
+        data = {"emg_server": processed_data_to_send, "n_electrode": n_electrode, "sampling_rate": rate, "system_rate": system_rate}
+        print("------ sent data")
+        sleep(0.1)
 
         try:
             server.client_listening(data)

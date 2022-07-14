@@ -85,7 +85,8 @@ if __name__ == '__main__':
     post_processor = EMGprocess()
    
     ### initializing mapper ###
-    mapper = Mapper(n_electrode, system_rate) 
+    mapper = Mapper(n_electrode, system_rate)
+    mapping = [0.5,0.5] 
 
     ### initializing phones to which we send the haptics ###
     emitter = Emitter()
@@ -144,7 +145,12 @@ if __name__ == '__main__':
         weighted_avr = mapper.weighted_average(weights)
         if emit:
             for w in weighted_avr[0]:
-                emitter.sendMessage(mapper.toFreqAmpl(w))
-                sleep(0.5)
+                try:
+                    mapping = mapper.toFreqAmpl(w)
+                    emitter.sendMessage(mapping)
+                    sleep(0.5)
+                except TypeError:
+                    emitter.sendMessage(mapping)
+                    sleep(0.5)
 
        
