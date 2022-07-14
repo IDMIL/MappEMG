@@ -163,11 +163,11 @@ class ComputeMvc:
                 self.rplt, self.layout, self.app, self.box = self._init_live_plot(multi=True)
             nb_frame, var, duration = self._init_trial()
             c = 0
+
+            # Get data from mvc trial
             trial_emg = self._mvc_trial(duration, nb_frame, var)
-            # Get processed_emg from the trial_emg
-            # processed_emg, raw_emg = self._process_emg(trial_emg) #COMMENTING OUT: TRYING WITHOUT PROCESSING
-            # Plot the processed and raw emgs
-            # self._plot_trial(raw_emg, processed_emg) #COMMENTING OUT: TRYING WITHOUT PROCESSING
+            # Plot the raw emg data collected
+            self._plot_trial(trial_emg)
 
             task = input(
                 "Press 'c' to do another MVC trial, 'r' to repeat this trial, or 'q' to quit.\n"
@@ -183,23 +183,21 @@ class ComputeMvc:
             if task == "c" or "q":
 
                 # Save emg processed to csv file
-                # df = pd.DataFrame(processed_emg.T, columns = self.muscle_names) #COMMENTING OUT: TRYING WITHOUT PROCESSING
-                df = pd.DataFrame(trial_emg.T, columns = self.muscle_names) # REPLACES LINE ABOVE, USES RAW DATA INSTEAD OF PROCESSED
-                # df.insert(0, 'trial_index', list(range(0, processed_emg.shape[1]))) #COMMENTING OUT: TRYING WITHOUT PROCESSING
-                df.insert(0, 'trial_index', list(range(0, trial_emg.shape[1]))) # REPLACES LINE ABOVE, USES RAW DATA INSTEAD OF PROCESSED
+                df = pd.DataFrame(trial_emg.T, columns = self.muscle_names)
+                df.insert(0, 'trial_index', list(range(0, trial_emg.shape[1])))
                 df.insert(0, 'trial_name', self.try_name)
-                df.to_csv('df_trial_tmp.csv', mode='a', index=False, header=self.first_trial) # append
+                df.to_csv('df_trial_tmp.csv', mode='a', index=False, header=self.first_trial) # append trial to temp csv
                 if self.first_trial == True:
                     self.first_trial = False
 
+                # if quit, save trial and delete tmp
                 if task == "q":
                     mvc = self._save_trial()
                     self._delete_tmp()
                     return mvc
 
             elif task == "r":
-                # Do not save trial and continue
-                # processed_emg, raw_emg = None, None #COMMENTING OUT: TRYING WITHOUT PROCESSING
+                # Do not save trial and continue 
                 trial_emg = None
 
     def _init_trial(self):
@@ -319,7 +317,7 @@ class ComputeMvc:
                         pass
                 return data
 
-    def _plot_trial(self, raw_data: np.ndarray = None, processed_data: np.ndarray = None):
+    def _plot_trial(self, raw_data: np.ndarray = None):
         """
         Plot the trial.
 
@@ -346,7 +344,7 @@ class ComputeMvc:
                     f" 'p' to plot your processed trial, 'b' to plot both or 'c' to continue,"
                     f" then press enter."
                 )
-                while plot != "p" and plot != "pr" and plot != "c" and plot != "b":
+                while plot not in ["p", "pr", "c", "b"]:
                     print(f"Invalid entry ({plot}). Please press 'p', 'pr', 'b',  or 'c' (in lowercase).")
                     plot = input(
                         f"Press 'pr' to plot your raw trial,"
@@ -354,18 +352,23 @@ class ComputeMvc:
                     )
 
                 if plot != "c":
+                    if plot == "pr":
+                        data = raw_data
+                        legend = ["Raw"]
                     if plot == "p":
-                        data = processed_data
-                        legend = ["Processed"]
+                        # data = processed_data
+                        # legend = ["Processed"]
+                        print("Not implemented")
                     elif plot == "b":
-                        data = [raw_data, processed_data]
-                        legend = ["Raw", "Processed"]
+                        # data = [raw_data, processed_data]
+                        # legend = ["Raw", "Processed"]
+                        print("Not implemented")
                     legend = legend * raw_data.shape[0]
                     x = np.linspace(0, raw_data.shape[1] / self.frequency, raw_data.shape[1])
                     print("Close the plot windows to continue.")
                     Plot().multi_plot(data,
                                       nb_column=nb_column,
-                                      y_label="Activation level (v)",
+                                      y_label="Activation level (mV)",
                                       x_label="Time (s)",
                                       legend=legend,
                                       subplot_title=self.muscle_names,
@@ -410,7 +413,7 @@ class ComputeMvc:
         rplt: list of live plot, layout: qt layout, qt app : pyqtapp, checkbox : list of checkbox
 
         """
-        self.plot_app = LivePlot() # multi_process=multi
+        self.plot_app = LivePlot()
         self.plot_app.add_new_plot("EMG", "curve", self.muscle_names)
         rplt, layout, app, box = self.plot_app.init_plot_window(plot=self.plot_app.plot[0], use_checkbox=True)
         return rplt, layout, app, box
@@ -473,7 +476,7 @@ class ComputeMvc:
             os.remove(file)
             print("Temp file deleted")
         else:
-            print("ERROR: file not found")
+            print("Temp file already deleted")
 
 if __name__ == "__main__":
 
@@ -486,7 +489,7 @@ if __name__ == "__main__":
     # TODO: Ask for these information before connecting. Right now they are hardcoded.
     # if mvc_with_connection:
     server_ip = "localhost" if mvc_with_connection else None
-    server_port = 5004 if mvc_with_connection else None
+    server_port = 5005 if mvc_with_connection else None
 
     # TODO: get number of sensors from the server
     # Define number of muscles and muscle names
