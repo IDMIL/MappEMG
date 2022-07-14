@@ -89,5 +89,9 @@ if __name__ == '__main__':
 
         try:
             server.client_listening(data)
-        except:
+        except KeyboardInterrupt:
+            server.close()
+            print("\nClosing server...\n")
+            exit(0)
+        else:
             continue # in case client_listening failes, try again next loop

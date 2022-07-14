@@ -193,6 +193,12 @@ class Server(Connection):
         except ConnectionError:
             raise RuntimeError("Unknown error. Server is not listening.")
 
+    def close(self):
+        """
+        Close the server.
+        """
+        self.server.close()
+
     def client_listening(self, data: dict):
         """
         Listen to the client.
