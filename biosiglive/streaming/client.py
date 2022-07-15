@@ -13,26 +13,14 @@ Buff_size = 32767
 class Message:
     def __init__(self,
                  command: list = (),
-                 #read_frequency: float = 100,
                  nb_frame_to_get: int = 1,
-                 #get_names: bool = None,
-                 #mvc_list: list = None,
-                 #get_raw_data: bool = False
                  ):
         """
         Message class
         """
 
         self.command = command
-        # self.read_frequency = 100
-        # self.emg_windows = 2000
-        # self.get_names = False
-        # self.nb_frames_to_get = 1
-        # self.get_names = get_names
-        # self.mvc_list = mvc_list
-        # self.read_frequency = read_frequency
         self.nb_frames_to_get = nb_frame_to_get
-        #self.raw_data = get_raw_data
 
     def update_command(self, name: Union[str, list], value: Union[bool, int, float, list, str]):
         """
