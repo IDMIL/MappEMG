@@ -67,9 +67,22 @@ if __name__ == '__main__':
         emit = False
     else:
 
-        ### initializing post processor ###
-        post_processor = EMGprocess()
+        ### initializing phones to which we send the haptics ###
+        emitter = Emitter()
     
+        n = 1
+        while n != int(n_devices)+ 1:
+            ip = input(f'\nIP of device number {n} (e.g: XXX.XXX.X.X): ')
+            port = input(f'\nPORT of device number {n} (e.g: 2222): ')
+            ip = str(ip)
+            port = int(port)
+            try:
+                emitter.add_device_client(ip, port)
+                n = n + 1
+            except:
+                print("Invalid IP or PORT, try again...")
+
+       
         ### initializing mapper ###
         mapper = Mapper(n_electrode, system_rate)
         mapping = [0.5,0.5]
@@ -97,28 +110,11 @@ if __name__ == '__main__':
         for i, w in enumerate(weights_raw):
             weights[0][i] = float(w)
 
-        ### initializing mapper ###
-        mapper = Mapper(n_electrode, system_rate) 
-
-        ### initializing phones to which we send the haptics ###
-        emitter = Emitter()
-    
-        n = 1
-        while n != int(n_devices)+ 1:
-            ip = input(f'\nIP of device number {n} (e.g: XXX.XXX.X.X): ')
-            port = input(f'\nPORT of device number {n} (e.g: 2222): ')
-            ip = str(ip)
-            port = int(port)
-            try:
-                emitter.add_device_client(ip, port)
-                n = n + 1
-            except:
-                print("Invalid IP or PORT, try again...")
-
-    ########################################################
 
     ### initializing post processor ###
-    post_processor = EMGprocess()
+    post_processor = EMGprocess()   
+
+    ########################################################
 
     print("\nStart receiving from server...\n")
 
