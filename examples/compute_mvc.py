@@ -60,11 +60,7 @@ class ComputeMvc:
         # Set frequency and acquisition parameters depending on connection
         self.with_connection = with_connection
         if self.with_connection:
-            message = Message(command=["emg"],
-                      read_frequency=100,
-                      nb_frame_to_get=1,
-                      get_raw_data=False,
-                      mvc_list=None)
+            message = Message(command=["emg"], nb_frame_to_get=1)
 
             client = Client(server_ip=self.server_ip, port=self.server_port, type="TCP")
             data = client.get_data(message)
@@ -263,10 +259,7 @@ class ComputeMvc:
             # create message
             type_of_data = ["emg"]
             message = Message(command=type_of_data,
-                      read_frequency=self.frequency,
-                      nb_frame_to_get=self.acquisition_rate,
-                      get_raw_data=False,
-                      mvc_list=None)
+                      nb_frame_to_get=self.acquisition_rate)
 
         while True:
             try:
