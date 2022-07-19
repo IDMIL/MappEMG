@@ -46,7 +46,6 @@ As a tour guide that uses this binder, you can watch the `bioptim` workshop that
 [How to run](#how-to-run)
 - [Running the server](#running-the-server)
 - [Running an MVC trial](#running-an-mvc-trial)
-- [Solving the ocp](#solving-the-ocp)
 - [Show the results](#show-the-results)
 [Citing](#Citing)
 
