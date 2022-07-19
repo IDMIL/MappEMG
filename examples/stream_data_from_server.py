@@ -16,7 +16,7 @@ if __name__ == '__main__':
     # Server's host and port
     input_host_ip = input("\nConnect to host address (leave empty for \"localhost\"): ")
     host_ip = 'localhost' if input_host_ip == '' else input_host_ip
-    input_host_port = input("\nConnect to host address (leave empty for \"5005\"): ")
+    input_host_port = input("\nConnect to host port (leave empty for \"5005\"): ")
     host_port = 5005 if input_host_port == '' else int(input_host_port)
 
     
@@ -73,13 +73,13 @@ if __name__ == '__main__':
         n = 1
         while n != int(n_devices)+ 1:
             ip = input(f'\nIP of device number {n} (e.g: XXX.XXX.X.X): ')
-            port = input(f'\nPORT of device number {n} (e.g: 2222): ')
-            ip = str(ip)
-            port = int(port)
+            port = input(f'\nPORT of device number {n} (e.g: 2222): ') 
             try:
+                ip = str(ip)
+                port = int(port)
                 emitter.add_device_client(ip, port)
                 n = n + 1
-            except:
+            except ValueError:
                 print("Invalid IP or PORT, try again...")
 
        

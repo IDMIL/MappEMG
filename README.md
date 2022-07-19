@@ -5,7 +5,7 @@
     />
 </p> -->
 
-![alt text](https://github.com/karlmiko/biosiglive/MappEmg_pipeline.png)
+![alt text](https://github.com/karlmiko/biosiglive/blob/refactor/MappEmg_pipeline.png?raw=trueg)
 
 `MapEMG` allows the audience to experience the performer’s muscle effort, an essential
 component of music performance which is typically unavailable to direct visual
@@ -168,29 +168,29 @@ To start the trial, while the server is running, run `compute_mvc.py` in the exa
 Once `compute_mvc.py` is running, you should answer the questions from the prompt:
 
 ``` bash
->>Do MVC with real data from server? (y, or n for random data): 
+>> Do MVC with real data from server? (y, or n for random data): 
 ```
 Answer `y` if you would like to use the data acquired by the server or `n` for randomly generated data.
 
 ``` bash
->>How many muscles will be used (e.g. for 2 muscles, write 2): 
+>> How many muscles will be used (e.g. for 2 muscles, write 2): 
 ```
 Answer the number of muscles you are currently measuring the contractions for. That corresponds to the number of channels used.
 
 ``` bash
->>Give a name to muscle #1:  
+>> Give a name to muscle #1:  
 ```
 Answer the name you would like to give to your muscle. Try to be as descriptive as possible. If you are targetting more than one muscle, you will have to name those too.
 
 ``` bash
->>Please enter a name of your trial (string) then press enter or press enter.
+>> Please enter a name of your trial (string) then press enter or press enter.
 ```
 Answer the name you would like to give to the trial. If you do not wish to name it, simply press enter.
 
 Then you should get a message confirming the trial you would like to run
 
 ``` bash
->>Ready to start trial: <trial_name>, with muscles :[<muscle_1>, <muscle_2>]. Press enter to begin your MVC. or enter a number of seconds
+>> Ready to start trial: <trial_name>, with muscles :[<muscle_1>, <muscle_2>]. Press enter to begin your MVC. or enter a number of seconds
 ```
 Either start it directly or enter the number of seconds the MVC trial will take, and do not forget to contract as much as you can to get the maximum value of contraction!
 
@@ -207,173 +207,51 @@ Once `stream_data_from_server.py` is running, you should answer the questions fr
 Answer the address on which you are hosting the server, if it is locally, press enter and it will automatically be 'localhost', meaning the IP address 127.0.0.1. If you are hosting the server on a different machine, input that new IP address.
 
 ``` bash
->>Connect to host port (leave empty for "5005"): 
+>> Connect to host port (leave empty for "5005"): 
 ```
 If you are hosting the server locally, press enter and it will automatically set the host port to 5005. If you are hosting on a different machine, enter its port.
 
 ``` bash
->>Do you want to load real MVC values? ('y' or 'n' for random): 
+>> Do you want to load real MVC values? ('y' or 'n' for random): 
 ```
 Press `y` if you would like to load real MVC value you have collected earlier on (to do that check out [this](#running-an-mvc-trial) section). If you would like to load random values then press `n`.
 
 If you clicked on `n` skip this part, if you clicked on `y` you will be prompted to answer:
 ``` bash
->>Input name of the MVC .csv file (for example "MVC_20220707-1915.csv"): 
+>> Input name of the MVC .csv file (for example "MVC_20220707-1915.csv"): 
 ```
 where you simply should imput the name of the MVC file you collected earlier on. For example "MVC_20220707-1915.csv".
 
 Then you will be asked if you would like to connect a device to the pipeline. This can only work if you have the haptics app installed. NOTE: YOUR HOST AND DEVICES SHOULD BE CONNECTED TO THE SAME WIFI
 ``` bash
->>How many devices with the haptics app would you like to connect? 
+>> How many devices with the haptics app would you like to connect? 
 ```
 Answer 0 if you do not want to connect a device, or any positive integer for the number of devices you would like to connect. 
 
 ``` bash
->>IP of device number 1 (e.g: XXX.XXX.X.X):
+>> IP of device number 1 (e.g: XXX.XXX.X.X):
 ``` 
 Enter the IP of your device (which you can find at the top of the haptics app or in your wifi settings).
 
 ``` bash
->>PORT of device number 1 (e.g: 2222):
+>> PORT of device number 1 (e.g: 2222):
 ```
 Enter the port of your device (which you can find at the top of the haptics app or in your wifi settings).
 
 ``` bash
 >> Attribute weights between 0 and 1 to each sensor (e.g for A1 A2 A3, write 0.45 1 0):
 ```
-These correspond to the following weights:
+These correspond to the following weights in the controller portion:
 ![alt text](https://github.com/karlmiko/biosiglive/blob/refactor/emg_weights.png?raw=true)
 
 Meaning each EMG sensor you have connected can have a weight attributed to it. Weight 1 is 100% of the weight, while 0 is none.
 
+That's it! Your devices should start vibrating. If it is not the case you might have to restart your haptics app and the client!
 
-## Show the results
-If you want to have a look at the animated data, `bioptim` has an interface to `bioviz` which is designed to visualize bioMod files.
-For that, simply call the `animate()` method of the solution:
-```python
-sol.animate()
-```
-
-If you did not fancy the online graphs, but would enjoy them anyway, you can call the method `graphs()`:
-```python
-sol.graphs()
-```
-
-If you are interested in the results of individual objective functions and constraints, you can print them using the 
-`print_cost()` or access them using the `detailed_cost_values()`:
-```python
-sol.print_cost()  # For printing their values in the console
-sol.detailed_cost_values()  # For adding the objectives details to sol for later manipulations
-```
-
-And that is all! 
-You have completed your first optimal control program with `bioptim`! 
-
-## The full example files
-If you did not completely follow (or were too lazy to!) you will find in this section the complete files described in the Getting started section.
-You will find that the file is a bit different from the `example/getting_started/pendulum.py`, but it is merely differences on the surface.
-
-### The pendulum.py file
-```python
-import biorbd_casadi as biorbd
-from bioptim import (
-    OptimalControlProgram,
-    DynamicsFcn,
-    Dynamics,
-    Bounds,
-    QAndQDotBounds,
-    InitialGuess,
-    ObjectiveFcn,
-    Objective,
-)
-
-biorbd_model = biorbd.Model("pendulum.bioMod")
-dynamics = Dynamics(DynamicsFcn.TORQUE_DRIVEN)
-x_bounds = QAndQDotBounds(biorbd_model)
-x_bounds[:, [0, -1]] = 0
-x_bounds[1, -1] = 3.14
-u_bounds = Bounds([-100, 0], [100, 0])
-objective_functions = Objective(ObjectiveFcn.Lagrange.MINIMIZE_TORQUE)
-x_init = InitialGuess([0, 0, 0, 0])
-u_init = InitialGuess([0, 0])
-
-ocp = OptimalControlProgram(
-        biorbd_model,
-        dynamics,
-        n_shooting=25,
-        phase_time=3,
-        x_init=x_init,
-        u_init=u_init,
-        x_bounds=x_bounds,
-        u_bounds=u_bounds,
-        objective_functions=objective_functions,
-    )
-    
-sol = ocp.solve(show_online_optim=True)
-sol.print_cost()
-sol.animate()
-```
-### The pendulum.bioMod file
-Here is a simple pendulum that can be interpreted by `biorbd`. 
-For more information on how to build a bioMod file, one can read the doc of [biorbd](https://github.com/pyomeca/biorbd).
-
-```c
-version 4
-
-// Seg1
-segment Seg1
-    translations	y
-    rotations	x
-    ranges  -1 5
-            -2*pi 2*pi
-    mass 1
-    inertia
-        1 0 0
-        0 1 0
-        0 0 0.1
-    com 0.1 0.1 -1
-    mesh 0.0   0.0   0.0
-    mesh 0.0  -0.0  -0.9
-    mesh 0.0   0.0   0.0
-    mesh 0.0   0.2  -0.9
-    mesh 0.0   0.0   0.0
-    mesh 0.2   0.2  -0.9
-    mesh 0.0   0.0   0.0
-    mesh 0.2   0.0  -0.9
-    mesh 0.0   0.0   0.0
-    mesh 0.0  -0.0  -1.1
-    mesh 0.0   0.2  -1.1
-    mesh 0.0   0.2  -0.9
-    mesh 0.0  -0.0  -0.9
-    mesh 0.0  -0.0  -1.1
-    mesh 0.2  -0.0  -1.1
-    mesh 0.2   0.2  -1.1
-    mesh 0.0   0.2  -1.1
-    mesh 0.2   0.2  -1.1
-    mesh 0.2   0.2  -0.9
-    mesh 0.0   0.2  -0.9
-    mesh 0.2   0.2  -0.9
-    mesh 0.2  -0.0  -0.9
-    mesh 0.0  -0.0  -0.9
-    mesh 0.2  -0.0  -0.9
-    mesh 0.2  -0.0  -1.1
-endsegment
-
-    // Marker 1
-    marker marker_1
-        parent Seg1
-        position 0 0 0
-    endmarker
-
-    // Marker 2
-    marker marker_2
-        parent Seg1
-        position 0.1 0.1 -1
-    endmarker
-```
 
 # Citing
-If you use `bioptim`, we would be grateful if you could cite it as follows:
+If you use `biosiglive`, we would be grateful if you could cite it as follows:
+NOTE TO KARL & FELIPE: gotta change this, lmk what ref we should use
 @article {Bioptim2021,
 	author = {Michaud, Benjamin and Bailly, Fran{\c c}ois and Charbonneau, Eve and Ceglia, Amedeo and Sanchez, L{\'e}a and Begon, Mickael},
 	title = {Bioptim, a Python framework for Musculoskeletal Optimal Control in Biomechanics},
