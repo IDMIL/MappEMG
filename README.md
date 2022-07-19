@@ -5,7 +5,7 @@
     />
 </p> -->
 
-![alt text](https://github.com/karlmiko/biosiglive/tree/refactor/MappEmg_pipeline)
+![alt text](https://github.com/karlmiko/biosiglive/MappEmg_pipeline.png)
 
 `MapEMG` allows the audience to experience the performer’s muscle effort, an essential
 component of music performance which is typically unavailable to direct visual
@@ -168,29 +168,29 @@ To start the trial, while the server is running, run `compute_mvc.py` in the exa
 Once `compute_mvc.py` is running, you should answer the questions from the prompt:
 
 ``` bash
-Do MVC with real data from server? (y, or n for random data): 
+>>Do MVC with real data from server? (y, or n for random data): 
 ```
 Answer `y` if you would like to use the data acquired by the server or `n` for randomly generated data.
 
 ``` bash
-How many muscles will be used (e.g. for 2 muscles, write 2): 
+>>How many muscles will be used (e.g. for 2 muscles, write 2): 
 ```
 Answer the number of muscles you are currently measuring the contractions for. That corresponds to the number of channels used.
 
 ``` bash
-Give a name to muscle #1:  
+>>Give a name to muscle #1:  
 ```
 Answer the name you would like to give to your muscle. Try to be as descriptive as possible. If you are targetting more than one muscle, you will have to name those too.
 
 ``` bash
-Please enter a name of your trial (string) then press enter or press enter.
+>>Please enter a name of your trial (string) then press enter or press enter.
 ```
 Answer the name you would like to give to the trial. If you do not wish to name it, simply press enter.
 
 Then you should get a message confirming the trial you would like to run
 
 ``` bash
-Ready to start trial: <trial_name>, with muscles :[<muscle_1>, <muscle_2>]. Press enter to begin your MVC. or enter a number of seconds
+>>Ready to start trial: <trial_name>, with muscles :[<muscle_1>, <muscle_2>]. Press enter to begin your MVC. or enter a number of seconds
 ```
 Either start it directly or enter the number of seconds the MVC trial will take, and do not forget to contract as much as you can to get the maximum value of contraction!
 
@@ -207,40 +207,43 @@ Once `stream_data_from_server.py` is running, you should answer the questions fr
 Answer the address on which you are hosting the server, if it is locally, press enter and it will automatically be 'localhost', meaning the IP address 127.0.0.1. If you are hosting the server on a different machine, input that new IP address.
 
 ``` bash
-Connect to host port (leave empty for "5005"): 
+>>Connect to host port (leave empty for "5005"): 
 ```
 If you are hosting the server locally, press enter and it will automatically set the host port to 5005. If you are hosting on a different machine, enter its port.
 
 ``` bash
-Do you want to load real MVC values? ('y' or 'n' for random): 
+>>Do you want to load real MVC values? ('y' or 'n' for random): 
 ```
 Press `y` if you would like to load real MVC value you have collected earlier on (to do that check out [this](#running-an-mvc-trial) section). If you would like to load random values then press `n`.
 
 If you clicked on `n` skip this part, if you clicked on `y` you will be prompted to answer:
 ``` bash
-Input name of the MVC .csv file (for example "MVC_20220707-1915.csv"): 
+>>Input name of the MVC .csv file (for example "MVC_20220707-1915.csv"): 
 ```
 where you simply should imput the name of the MVC file you collected earlier on. For example "MVC_20220707-1915.csv".
 
 Then you will be asked if you would like to connect a device to the pipeline. This can only work if you have the haptics app installed. NOTE: YOUR HOST AND DEVICES SHOULD BE CONNECTED TO THE SAME WIFI
 ``` bash
-How many devices with the haptics app would you like to connect? 
+>>How many devices with the haptics app would you like to connect? 
 ```
 Answer 0 if you do not want to connect a device, or any positive integer for the number of devices you would like to connect. 
 
 ``` bash
-IP of device number 1 (e.g: XXX.XXX.X.X):
+>>IP of device number 1 (e.g: XXX.XXX.X.X):
 ``` 
 Enter the IP of your device (which you can find at the top of the haptics app or in your wifi settings).
 
 ``` bash
-PORT of device number 1 (e.g: 2222):
+>>PORT of device number 1 (e.g: 2222):
 ```
 Enter the port of your device (which you can find at the top of the haptics app or in your wifi settings).
 
 ``` bash
-Attribute weights between 0 and 1 to each sensor (e.g for A1 A2 A3, write 0.45 1 0):
+>> Attribute weights between 0 and 1 to each sensor (e.g for A1 A2 A3, write 0.45 1 0):
 ```
+These correspond to the following weights:
+![alt text](https://github.com/karlmiko/biosiglive/emg_weights.png)
+
 ## Show the results
 If you want to have a look at the animated data, `bioptim` has an interface to `bioviz` which is designed to visualize bioMod files.
 For that, simply call the `animate()` method of the solution:
