@@ -242,7 +242,10 @@ Enter the port of your device (which you can find at the top of the haptics app 
 >> Attribute weights between 0 and 1 to each sensor (e.g for A1 A2 A3, write 0.45 1 0):
 ```
 These correspond to the following weights:
-![alt text](https://github.com/karlmiko/biosiglive/emg_weights.png)
+![alt text](https://github.com/karlmiko/biosiglive/blob/refactor/emg_weights.png?raw=true)
+
+Meaning each EMG sensor you have connected can have a weight attributed to it. Weight 1 is 100% of the weight, while 0 is none.
+
 
 ## Show the results
 If you want to have a look at the animated data, `bioptim` has an interface to `bioviz` which is designed to visualize bioMod files.
