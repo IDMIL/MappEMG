@@ -123,7 +123,7 @@ if __name__ == '__main__':
     processor = emg_processing.process_emg
 
     # Initialize sample queue with correect number of electrodes and full of zeros
-    sample_queue.queue = np.zeros((n_electrode, 1000))
+    sample_queue.queue = np.ones((n_electrode, 1000))
 
     #### start bitalino thread ####
     if with_connection == 'y':
