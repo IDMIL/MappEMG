@@ -83,6 +83,8 @@ pip install numpy
 pip install typing
 pip install python-osc
 pip install matplotlib
+pip install bitalino
+pip install pandas
 ```
 
 ## Installation
