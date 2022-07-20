@@ -147,7 +147,8 @@ if __name__ == '__main__':
         LOCK.acquire()
         # processing the data
         processed_data_to_send = processor(sample_queue.queue, rate, pyomeca=False, ma=True) # processing from amadeo, ma is moving average/pyomeca is low pass        
-        sample_queue.dequeue(system_rate)
+        #processed_data_to_send = sample_queue.dequeue(system_rate)
+        sample_queue.dequeue(system_rate) # COMMENT OUT IF WANT TO TRY WITHOUT PROCESSING
         LOCK.release()
 
         # creating data dict
