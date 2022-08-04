@@ -2,9 +2,9 @@
 from biosiglive.streaming.client import Client, Message
 import numpy as np
 import pandas as pd
-from biosiglive.processing.mappEMG import Mapper
-from biosiglive.processing.mappEMG import EMGprocess
-from biosiglive.processing.mappEMG import Emitter
+from MappEMG.processing import Mapper
+from MappEMG.processing import EMGprocess
+from MappEMG.processing import Emitter
 from time import sleep
 
 if __name__ == '__main__':
