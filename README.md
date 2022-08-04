@@ -5,12 +5,12 @@
     />
 </p> -->
 
-![alt text](https://github.com/karlmiko/biosiglive/blob/refactor/MappEmg_pipeline.png?raw=trueg)
+![alt text](https://github.com/karlmiko/biosiglive/blob/refactor/MappEMG/MappEmg_pipeline.png?raw=trueg)
 
 `MapEMG` allows the audience to experience the performer’s muscle effort, an essential
 component of music performance which is typically unavailable to direct visual
 observation. The goal is thus to give the listeners access, through haptic vibrations, to an intimate and non-visible dimension of the musicians’ bodily experience.
-The processing pipeline is based on [Emg2haptics](https://github.com/Fiverdug/Emg2haptics) maxMSP code, which has been translated into python. 
+<!-- The processing pipeline is based on [Emg2haptics](https://github.com/Fiverdug/Emg2haptics) maxMSP code, which has been translated into python.  -->
 
 <!-- ## Status
 

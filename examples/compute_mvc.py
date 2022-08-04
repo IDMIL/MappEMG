@@ -10,6 +10,7 @@ from time import time, sleep
 import os
 import numpy as np
 import pandas as pd
+import datetime
 
 from biosiglive.streaming.client import Client, Message
 
@@ -158,7 +159,7 @@ class ComputeMvc:
             if show_data:
                 self.rplt, self.layout, self.app, self.box = self._init_live_plot(multi=True)
             nb_frame, var, duration = self._init_trial()
-            c = 0
+            
 
             # Get data from mvc trial
             trial_emg = self._mvc_trial(duration, nb_frame, var)
@@ -212,7 +213,7 @@ class ComputeMvc:
 
         try_name = input("Please enter a name of your trial (string) then press enter or press enter.\n")
         while try_name in self.try_list:
-            try_name = input("This name is already used. Please chose and other name.\n")
+            try_name = input("This name is already used. Please chose an other name.\n")
 
         if try_name == "":
             self.try_name = f"MVC_{self.try_number}"
@@ -255,12 +256,13 @@ class ComputeMvc:
         """
         data = None
         if self.with_connection is True:
-            # TODO: get e message to read info from server first, then moddify message
+            # getting message to read info from server first, then moddify message
             # create message
             type_of_data = ["emg"]
             message = Message(command=type_of_data,
                       nb_frame_to_get=self.acquisition_rate)
-
+        dummy = 0
+        
         while True:
             try:
                 if nb_frame == 0:
@@ -273,12 +275,18 @@ class ComputeMvc:
                     # Create a client to connect to server
                     client = Client(server_ip=self.server_ip, port=self.server_port, type="TCP")
                     # Get data streamed from server
+                    if dummy == 0:
+                        a = datetime.datetime.now() # timing check purposes
+                        print("Got data from server at time", a)
+                        dummy = 1
                     client_data= client.get_data(message)
                     #time.sleep(1)
                     emg = np.array(client_data['emg_server'])
                     data_tmp = emg
                 else:
-                    data_tmp = np.random.random((self.nb_muscles, int(self.acquisition_rate)))
+                    #data_tmp = np.random.random((self.nb_muscles, int(self.acquisition_rate)))
+                    data_tmp = np.random.randint(1024, size=(self.nb_muscles, int(self.acquisition_rate)))
+                    data_tmp = (data_tmp/(2**10)-0.5)*3.3/1009*1000
                 tic = time()
 
                 data = data_tmp if nb_frame == 0 else np.append(data, data_tmp, axis=1)
@@ -297,6 +305,12 @@ class ComputeMvc:
                     if nb_frame == var:
                         if self.with_connection is True:
                             print("\nStop acquiring from server...")
+                            b = datetime.datetime.now() # timing check purposes
+                            print("Got data from server at time", b)
+                            c = b - a
+                            print("acquiring data took", c.total_seconds())
+                            print("n of frames: ", nb_frame)
+                        print(data, data.shape)
                         return data
 
             except KeyboardInterrupt:
@@ -310,6 +324,7 @@ class ComputeMvc:
                         pass
                 return data
 
+
     def _plot_trial(self, raw_data: np.ndarray = None):
         """
         Plot the trial.
@@ -322,54 +337,67 @@ class ComputeMvc:
                 The processed EMG data of the trial.
         """
         data = raw_data
-        legend = ["Raw"]
+        legend = ["Processed MVC trial"]
         nb_column = 4 if raw_data.shape[0] > 4 else raw_data.shape[0]
         n_p = 0
         plot_comm = "y"
         print(f"Trial {self.try_name} terminated. ")
         while plot_comm != "n":
+            if n_p == 0:
+                plot_comm = input(f"Would you like to plot your trial ? 'y'/'n'")
             if n_p != 0:
                 plot_comm = input(f"Would you like to plot again ? 'y'/'n'")
 
             if plot_comm == "y":
-                plot = input(
-                    f"Press 'pr' to plot your raw trial,"
-                    f" 'p' to plot your processed trial, 'b' to plot both or 'c' to continue,"
-                    f" then press enter."
-                )
-                while plot not in ["p", "pr", "c", "b"]:
-                    print(f"Invalid entry ({plot}). Please press 'p', 'pr', 'b',  or 'c' (in lowercase).")
-                    plot = input(
-                        f"Press 'pr' to plot your raw trial,"
-                        f"'p' to plot your processed trial or 'c' to continue then press enter."
-                    )
 
-                if plot != "c":
-                    if plot == "pr":
-                        data = raw_data
-                        legend = ["Raw"]
-                    if plot == "p":
-                        # data = processed_data
-                        # legend = ["Processed"]
-                        print("Not implemented")
-                    elif plot == "b":
-                        # data = [raw_data, processed_data]
-                        # legend = ["Raw", "Processed"]
-                        print("Not implemented")
-                    legend = legend * raw_data.shape[0]
-                    x = np.linspace(0, raw_data.shape[1] / self.frequency, raw_data.shape[1])
-                    print("Close the plot windows to continue.")
-                    Plot().multi_plot(data,
-                                      nb_column=nb_column,
-                                      y_label="Activation level (mV)",
-                                      x_label="Time (s)",
-                                      legend=legend,
-                                      subplot_title=self.muscle_names,
-                                      figure_name=self.try_name,
-                                      x=x)
-                else:
-                    pass
-                n_p += 1
+                # plot = input(
+                #     f"Press 'pr' to plot your raw trial,"
+                #     f" 'p' to plot your processed trial, 'b' to plot both or 'c' to continue,"
+                #     f" then press enter."
+                # )
+                # while plot not in ["p", "pr", "c", "b"]:
+                #     print(f"Invalid entry ({plot}). Please press 'p', 'pr', 'b',  or 'c' (in lowercase).")
+                #     plot = input(
+                #         f"Press 'pr' to plot your raw trial,"
+                #         f"'p' to plot your processed trial or 'c' to continue then press enter."
+                #     )
+                legend = legend * raw_data.shape[0]
+                x = np.linspace(0, raw_data.shape[1] / self.frequency, raw_data.shape[1])
+                print("Close the plot windows to continue.")
+                Plot().multi_plot(data,
+                                    nb_column=nb_column,
+                                    y_label="Activation level (mV)",
+                                    x_label="Time (s)",
+                                    legend=legend,
+                                    subplot_title=self.muscle_names,
+                                    figure_name=self.try_name,
+                                    x=x)
+                # if plot != "c":
+                #     if plot == "pr":
+                #         data = raw_data
+                #         legend = ["Raw"]
+                #     if plot == "p":
+                #         # data = processed_data
+                #         # legend = ["Processed"]
+                #         print("Not implemented")
+                #     elif plot == "b":
+                #         # data = [raw_data, processed_data]
+                #         # legend = ["Raw", "Processed"]
+                #         print("Not implemented")
+                #     legend = legend * raw_data.shape[0]
+                #     x = np.linspace(0, raw_data.shape[1] / self.frequency, raw_data.shape[1])
+                #     print("Close the plot windows to continue.")
+                #     Plot().multi_plot(data,
+                #                       nb_column=nb_column,
+                #                       y_label="Activation level (mV)",
+                #                       x_label="Time (s)",
+                #                       legend=legend,
+                #                       subplot_title=self.muscle_names,
+                #                       figure_name=self.try_name,
+                #                       x=x)
+            else:
+                pass
+            n_p += 1
 
     def _process_emg(self, data, save_tmp=True):
         """
