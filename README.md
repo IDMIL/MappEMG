@@ -10,6 +10,11 @@
 `MapEMG` allows the audience to experience the performer’s muscle effort, an essential
 component of music performance which is typically unavailable to direct visual
 observation. The goal is thus to give the listeners access, through haptic vibrations, to an intimate and non-visible dimension of the musicians’ bodily experience.
+The project is organized in the following way: 
+Firstly connect your acquisition device to your local machine (can be either Bitalino or Delsys). Then you can run the server which is going to constantly process the data acquired by the sensors and stream it to either a client or an MVC trial. 
+The client side will take care of post-processing the emg data, such as normalization using MVC values, mapping the emg values to haptics, and emit this data to the happtics mobile app.
+
+For more information on the project, check out [this]() paper! NOTE TO FELIPE : is there a paper or references I could link here? I only have pdfs...
 <!-- The processing pipeline is based on [Emg2haptics](https://github.com/Fiverdug/Emg2haptics) maxMSP code, which has been translated into python.  -->
 
 <!-- ## Status
