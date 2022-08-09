@@ -13,19 +13,35 @@ Buff_size = 32767
 class Message:
     def __init__(self,
                  command: list = (),
+                 read_frequency: float = 100,
                  nb_frame_to_get: int = 1,
-                 ):
+                 get_names: bool = None,
+                 mvc_list: list = None,
+                 kalman: bool = None,
+                 get_raw_data: bool = False,
+                 ratio: int = 1,
+                 **kwargs):
         """
         Message class
         """
 
         self.command = command
+        self.emg_windows = 2000
+        self.get_names = False
+        self.nb_frames_to_get = 1
+        self.get_names = get_names
+        self.mvc_list = mvc_list
+        self.kalman = kalman
+        self.read_frequency = read_frequency
         self.nb_frames_to_get = nb_frame_to_get
+        self.raw_data = get_raw_data
+        self.ratio = ratio
+        for key in kwargs.keys():
+            self.__setattr__(key, kwargs[key])
 
     def update_command(self, name: Union[str, list], value: Union[bool, int, float, list, str]):
         """
         Update the command.
-
         Parameters
         ----------
         name: str
@@ -43,7 +59,6 @@ class Message:
     def get_command(self):
         """
         Get the command.
-
         Returns
         -------
         message: Message.dic
@@ -54,7 +69,6 @@ class Message:
     def add_command(self, name: str, value: Union[bool, int, float, list, str]):
         """
         Add a command.
-
         Parameters
         ----------
         name: str
@@ -93,10 +107,9 @@ class Client:
         self.address = f"{server_ip}:{port}"
         self.server_address = server_ip
         self.port = port
-        self.message = Message()
         self.client = self.client_sock(self.type)
 
-    def _connect(self):
+    def connect(self):
         self.client.connect((self.server_address, self.port))
 
     @staticmethod
@@ -107,27 +120,26 @@ class Client:
         ----------
         type: str
             Type of the main.
-
         Returns
         -------
         client: socket.socket
             Client main.
         """
         if type == "TCP" or type is None:
-            return socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            return socket.socket()
+        # socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         elif type == "UDP":
             return socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         else:
             raise RuntimeError(f"Invalid type of connexion ({type}). Type must be 'TCP' or 'UDP'.")
 
-    def recv_all(self, buff_size: int = Buff_size):
+    def _recv_all(self, buff_size: int = Buff_size):
         """
         Receive all data from the server.
         Parameters
         ----------
         buff_size: int
             Size of the buffer.
-
         Returns
         -------
         data: list
@@ -146,23 +158,23 @@ class Client:
         data = json.loads(data)
         return data
 
-    def get_data(self, message: Message = Message(), buff: int = Buff_size):
+    def get_data(self, message: Message = Message(), buff: int = Buff_size, initialize = True):
         """
         Get the data from server using the command.
-
         Parameters
         ----------
         message
         buff: int
             Size of the buffer.
-
         Returns
         -------
         data: dict
             Data from server.
         """
-
-        self._connect()
+        # if initialize:
+        #     self.client = self.client_sock(self.type)
+        # if not isinstance(message, str):
+        #     message = message.__dict__
+        #self._connect()
         self.client.sendall(json.dumps(message.__dict__).encode())
-        return self.recv_all(buff)
-
+        return self._recv_all(buff)

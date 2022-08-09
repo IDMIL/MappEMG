@@ -46,8 +46,8 @@ class EMGprocess:
         '''
         clips %MVC input such that it stays between 0 and 1
         '''
-        self.x_emg[self.x_emg > 1] = 1
-        self.x_emg[self.x_emg < 0] = 0
+        self.x_emg_smoothed[self.x_emg_smoothed > 1] = 1
+        self.x_emg_smoothed[self.x_emg_smoothed < 0] = 0
         
         
     # @staticmethod
@@ -79,6 +79,10 @@ class EMGprocess:
 
     def scale(self,expected_max):
         self.x_emg_scaled = self.x_emg_smoothed/expected_max
+        if self.x_emg_scaled.any() is None:
+            print("x_emg_scaled is None")
+        if self.x_emg_scaled.any() > 1:
+            print("x_emg_scaled is greater than 1:", self.x_emg_smoothed, expected_max)
         return self.x_emg_scaled
 
         
@@ -224,6 +228,9 @@ class Mapper:
         else:
              print('Entered mapping does not correspond to either "f" or "a"')
              return -inf
+
+        if x > 1 or x < 0:
+            print("x > 1 or x < 0")
 
         if x < threshold:  # if x is less than threshold
             return ymin

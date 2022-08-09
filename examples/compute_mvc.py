@@ -69,7 +69,7 @@ class ComputeMvc:
             self.acquisition_rate = data['system_rate'][0]
         else:
             self.frequency = 1000
-            self.acquisition_rate = 50
+            self.acquisition_rate = 10
 
         self.show_data = False
         self.plot_app, self.rplt, self.layout, self.app, self.box = None, None, None, None, None
@@ -96,7 +96,7 @@ class ComputeMvc:
                               lowpass_frequency: float = 5,
                               lowpass_order: int = 4,
                               butterworth_order: int = 4,
-                              ma_window: int = 200,
+                              ma_window: int = 100,
                               ):
         """
         Set the emg processing method.
