@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 from biosiglive.processing.mappEMG import Mapper
 from biosiglive.processing.mappEMG import EMGprocess
-from biosiglive.processing.data_processing import GenericProcessing
 from biosiglive.processing.mappEMG import Emitter
+from biosiglive.processing.data_processing import GenericProcessing
 from time import sleep
 
 if __name__ == '__main__':

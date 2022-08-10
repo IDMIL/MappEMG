@@ -33,6 +33,12 @@ class EMGprocess:
         self.x_emg = x
        
         if self.input_started == False: # if this is the first input passed, then the smoothed input is the same as the first input
+            if float(x[0][0])>1:
+                self.prev_smoothed = 1
+            elif float(x[0][0])<0:
+                self.prev_smoothed = 0
+            else:
+                self.prev_smoothed = float(x[0][0])
             self.prev_smoothed = float(x[0][0]) 
             self.x_emg_smoothed = np.zeros(np.shape(x))
             self.x_emg_scaled = np.zeros(np.shape(x))

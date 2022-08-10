@@ -96,7 +96,7 @@ class RunServer():
                     emg_tmp = sensor_interface.get_device_data(device_name="Vicon")[0]
                 
                 if self.sensorkit == 'pytrigno':
-                    sensor_interface.get_device_data(device_name="Pytrigno")[0]
+                    emg_tmp = sensor_interface.get_device_data(device_name="Pytrigno")[0]
             
             # STEP 1 - Put DICT into Queue IN
             self.emg_queue_in.put_nowait({"emg_tmp": emg_tmp})

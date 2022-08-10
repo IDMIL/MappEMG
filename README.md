@@ -5,12 +5,19 @@
     />
 </p> -->
 
-![alt text](https://github.com/karlmiko/biosiglive/blob/refactor/MappEmg_pipeline.png?raw=trueg)
+![alt text](https://github.com/karlmiko/biosiglive/blob/refactor/MappEMG/MappEmg_pipeline.png?raw=trueg)
 
 `MapEMG` allows the audience to experience the performer’s muscle effort, an essential
 component of music performance which is typically unavailable to direct visual
 observation. The goal is thus to give the listeners access, through haptic vibrations, to an intimate and non-visible dimension of the musicians’ bodily experience.
-The processing pipeline is based on [Emg2haptics](https://github.com/Fiverdug/Emg2haptics) maxMSP code, which has been translated into python. 
+
+
+The project is organized in the following way: 
+Firstly connect your acquisition device to your local machine (can be either Bitalino or Delsys). Then you can run the server which is going to constantly process the data acquired by the sensors and stream it to either a client or an MVC trial. 
+The client side will take care of post-processing the emg data, such as normalization using MVC values, mapping the emg values to haptics, and emit this data to the happtics mobile app.
+
+For more information on the project, check out [this]() paper! NOTE TO FELIPE : is there a paper or references I could link here? I only have pdfs...
+<!-- The processing pipeline is based on [Emg2haptics](https://github.com/Fiverdug/Emg2haptics) maxMSP code, which has been translated into python.  -->
 
 <!-- ## Status
 
@@ -66,9 +73,7 @@ As a tour guide that uses this binder, you can watch the `bioptim` workshop that
 
 
 # How to install 
-`MapEmg` relies on several libraries. The most obvious one is the `pyqt` suite. You can install them by running the following commands :
-
-Note that there are some extra required. Due to the amount of different dependencies, it would be tedious to show how to install them all here. The user is therefore invited to read the relevant documentations.
+`MapEmg` relies on several dependencies. Here are the installs you should be running to have all the necessary libraries:
 
 ## From Conda Forge
 ```bash
@@ -83,6 +88,8 @@ pip install numpy
 pip install typing
 pip install python-osc
 pip install matplotlib
+pip install bitalino
+pip install pandas
 ```
 
 ## Installation
@@ -92,7 +99,7 @@ Once you have downloaded `biosiglive`, navigate to the root folder and (assuming
 python setup.py install
 ```
 Assuming everything went well, that is it! 
-You can already enjoy bioptimizing!
+You can already enjoy MappEMGing!
 
 
 <!-- ### Dependencies
@@ -131,7 +138,7 @@ This is a section dedicated to show how to properly run the program. We recommen
 
 ## Running the server
 
-To run the server, simply run the file `open_server.py` in the examples directory. 
+To run the server, simply run the file `server.py` in the MappEMG directory. 
 The best way to do this is via the execute window in the top menu, and click `execute without debugging`.
 You will then have to answer some questions in the prompt which are the following:
 
@@ -163,9 +170,9 @@ The server is now running and continuously acquiring data
 
 To run an MVC trial, the server should be running. So if that is not the case, please refer to the section [above](#running-the-server).
 
-To start the trial, while the server is running, run `compute_mvc.py` in the examples directory by going in the above menu -> execute -> execute without debugging. VS code will ask you a question to which you should answer `yes` in order to run both `open_server.py` and `compute_mvc.py` simultaniously.
+To start the trial, while the server is running, run `MVC_trial.py` in the MappEMG directory by going in the above menu -> execute -> execute without debugging. VS code will ask you a question to which you should answer `yes` in order to run both `server.py` and `MVC_trial.py` simultaniously.
 
-Once `compute_mvc.py` is running, you should answer the questions from the prompt:
+Once `MVC_trial.py` is running, you should answer the questions from the prompt:
 
 ``` bash
 >> Do MVC with real data from server? (y, or n for random data): 
@@ -194,12 +201,14 @@ Then you should get a message confirming the trial you would like to run
 ```
 Either start it directly or enter the number of seconds the MVC trial will take, and do not forget to contract as much as you can to get the maximum value of contraction!
 
+The questions you will get after are really straightforward, they are there if you would like to plot your trial. Simply follow the instructions in the prompt.
+
 ## Running the client
 
 In order to start processing your EMG data, you should start running a client. To do so, firtly make sure that the server is running. To accomplish that you can refer to [this](#running-the-server) part of the read me.
-Once the server is running, you should run the `stream_data_from_server.py` file, which is under the examples directory. To run it, you should use the execute menu from the top bar and select menu -> execute -> execute without debugging. You will be prompted to answer `yes` to VScode's question on the screen.
+Once the server is running, you should run the `client.py` file, which is under the MappEMG directory. To run it, you should use the execute menu from the top bar and select menu -> execute -> execute without debugging. You will be prompted to answer `yes` to VScode's question on the screen.
 
-Once `stream_data_from_server.py` is running, you should answer the questions from the prompt:
+Once `client.py` is running, you should answer the questions from the prompt:
 
 ``` bash
 >> Connect to host address (leave empty for "localhost"): 
@@ -241,8 +250,8 @@ Enter the port of your device (which you can find at the top of the haptics app 
 ``` bash
 >> Attribute weights between 0 and 1 to each sensor (e.g for A1 A2 A3, write 0.45 1 0):
 ```
-These correspond to the following weights in the controller portion:
-![alt text](https://github.com/karlmiko/biosiglive/blob/refactor/emg_weights.png?raw=true)
+Here is a way to visualize what the weights refer to, it is simply a way to compute a weighted mean for each of the acquisition channels:
+![alt text](https://github.com/karlmiko/biosiglive/blob/refactor/MappEMG/emg_weights.png?raw=true)
 
 Meaning each EMG sensor you have connected can have a weight attributed to it. Weight 1 is 100% of the weight, while 0 is none.
 
@@ -251,7 +260,7 @@ That's it! Your devices should start vibrating. If it is not the case you might 
 
 # Citing
 If you use `biosiglive`, we would be grateful if you could cite it as follows:
-NOTE TO KARL & FELIPE: gotta change this, lmk what ref we should use
+NOTE TO FELIPE: this is a copy paste of another readme, let me know how/what you want to cite and I'll change this!
 @article {Bioptim2021,
 	author = {Michaud, Benjamin and Bailly, Fran{\c c}ois and Charbonneau, Eve and Ceglia, Amedeo and Sanchez, L{\'e}a and Begon, Mickael},
 	title = {Bioptim, a Python framework for Musculoskeletal Optimal Control in Biomechanics},
