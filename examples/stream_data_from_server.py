@@ -21,13 +21,10 @@ if __name__ == '__main__':
     host_port = 5005 if input_host_port == '' else int(input_host_port)
 
     
+    # TODO: Get data from server first
     # dummy_message = Message(command=type_of_data, nb_frame_to_get=1)
     # client = Client(server_ip=host_ip, port=host_port, type="TCP")
-
     # data = client.get_data(dummy_message)
-
-    print("It read data in stream_data_from_server")
-    sleep(1)
     system_rate = 1000 #data['system_rate'][0]
     read_freq = 100   #data['sampling_rate'][0]
     n_electrode = 2  #data['n_electrode'][0]
@@ -43,11 +40,6 @@ if __name__ == '__main__':
         mvc_file = input("\nInput name of the MVC .csv file (for example \"MVC_20220707-1915.csv\"): ")
         list_mvc = pd.read_csv(mvc_file)           # Open .csv file
         list_mvc = list_mvc.to_numpy().T.tolist()  # Get MVC in the proper shape
-
-    # Prepare Message that will be used to get data from server
-    # Number of frames to get comes from the server
-    # depending on the device frequency
-    message = Message(command=type_of_data, nb_frame_to_get=1)
 
     ############## setup for post processing ##############
 
@@ -124,7 +116,7 @@ if __name__ == '__main__':
     # Gets the data from the server.
     # Create a client to get data from server
     client = Client(server_ip=host_ip, port=host_port)
-    message = Message(command=type_of_data, nb_frame_to_get=1)
+    message = Message(command=type_of_data, nb_frame_to_get=100)
 
     connected = False
     
@@ -136,8 +128,8 @@ if __name__ == '__main__':
         if connected:
             
             data = client.get_data(message)
-            #print(data)
-            emg = data["emg_proc"]
+            emg = np.array(data["emg_proc"])
+            print(emg.shape)
 
             ##### PROCESSING #####
             perc_mvc = generic_processing.normalize_emg(emg, list_mvc)
