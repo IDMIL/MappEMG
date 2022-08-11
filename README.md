@@ -259,7 +259,7 @@ That's it! Your devices should start vibrating. If it is not the case you might 
 
 
 # Citing
-If you use `biosiglive`, we would be grateful if you could cite it as follows:
+If you use `MappEMG`, we would be grateful if you could cite it as follows:
 NOTE TO FELIPE: this is a copy paste of another readme, let me know how/what you want to cite and I'll change this!
 @article {Bioptim2021,
 	author = {Michaud, Benjamin and Bailly, Fran{\c c}ois and Charbonneau, Eve and Ceglia, Amedeo and Sanchez, L{\'e}a and Begon, Mickael},

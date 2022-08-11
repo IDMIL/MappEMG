@@ -1,0 +1,10 @@
+scipy
+numpy
+typing
+python-osc
+matplotlib
+bitalino
+pandas
+multiprocess
+PyQt5
+# PyQt5 python-osc
