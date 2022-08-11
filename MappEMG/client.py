@@ -2,9 +2,10 @@
 from biosiglive.streaming.client import Client, Message
 import numpy as np
 import pandas as pd
-from MappEMG.processing import Mapper
-from MappEMG.processing import EMGprocess
-from MappEMG.processing import Emitter
+from biosiglive.processing.mappEMG import Mapper
+from biosiglive.processing.mappEMG import EMGprocess
+from biosiglive.processing.mappEMG import Emitter
+from biosiglive.processing.data_processing import GenericProcessing
 from time import sleep
 
 if __name__ == '__main__':
@@ -20,15 +21,13 @@ if __name__ == '__main__':
     host_port = 5005 if input_host_port == '' else int(input_host_port)
 
     
-    dummy_message = Message(command=type_of_data, nb_frame_to_get=1)
-    client = Client(server_ip=host_ip, port=host_port, type="TCP")
-
-    # Get data streamed from server
-    data = client.get_data(dummy_message)
-    sleep(1)
-    system_rate = data['system_rate'][0]
-    read_freq = data['sampling_rate'][0]
-    n_electrode = data['n_electrode'][0]
+    # TODO: Get data from server first
+    # dummy_message = Message(command=type_of_data, nb_frame_to_get=1)
+    # client = Client(server_ip=host_ip, port=host_port, type="TCP")
+    # data = client.get_data(dummy_message)
+    system_rate = 1000 #data['system_rate'][0]
+    read_freq = 100   #data['sampling_rate'][0]
+    n_electrode = 2  #data['n_electrode'][0]
 
     # Load MVC data from previous trials or random
     load_mvc = None
@@ -41,11 +40,6 @@ if __name__ == '__main__':
         mvc_file = input("\nInput name of the MVC .csv file (for example \"MVC_20220707-1915.csv\"): ")
         list_mvc = pd.read_csv(mvc_file)           # Open .csv file
         list_mvc = list_mvc.to_numpy().T.tolist()  # Get MVC in the proper shape
-
-    # Prepare Message that will be used to get data from server
-    # Number of frames to get comes from the server
-    # depending on the device frequency
-    message = Message(command=type_of_data, nb_frame_to_get=system_rate)
 
     ############## setup for post processing ##############
 
@@ -112,42 +106,51 @@ if __name__ == '__main__':
 
 
     ### initializing post processor ###
-    post_processor = EMGprocess()   
+    post_processor = EMGprocess()
+    generic_processing = GenericProcessing()
 
     ########################################################
 
     print("\nStart receiving from server...\n")
 
+    # Gets the data from the server.
+    # Create a client to get data from server
+    client = Client(server_ip=host_ip, port=host_port)
+    message = Message(command=type_of_data, nb_frame_to_get=100)
+
+    connected = False
+    
     while True:
 
-        # Gets the data from the server.
-        # Create a client to get data from server
-        client = Client(server_ip=host_ip, port=host_port, type="TCP")
-        # Get all the data streamed from server
-        data = client.get_data(message)
+        if not connected:
+            client.connect()
+            connected = True
+        if connected:
+            
+            data = client.get_data(message)
+            emg = np.array(data["emg_proc"])
+            print(emg.shape)
 
-        # Get only the emg data as a numpy array.
-        emg = np.array(data['emg_server']) # you can also get sampling_rate and system_rate
+            ##### PROCESSING #####
+            perc_mvc = generic_processing.normalize_emg(emg, list_mvc)
+            post_processor.input(perc_mvc) # inputting data to be processed
+            post_processor.slide() # smoothing the data
+            post_processor.clip() # clipping data in case it is not between 0 and 1
+            data_tmp = post_processor.scale(1) # for now scaling to 1 as it's random data 
 
-        ##### PROCESSING #####
-        perc_mvc = (emg/list_mvc)
-        post_processor.input(perc_mvc) # inputting data to be processed
-        post_processor.clip() # clipping data in case it is not between 0 and 1
-        post_processor.slide() # smoothing the data
-        data_tmp = post_processor.scale(1) # for now scaling to 1 as it's random data 
+            if emit:
 
-        if emit:
+                ##### MAPPING & EMITTING #####
 
-            ##### MAPPING & EMITTING #####
-            mapper.input(data_tmp)
-            weighted_avr = mapper.weighted_average(weights)
+                mapper.input(data_tmp)
+                weighted_avr = mapper.weighted_average(weights)
 
-            for w in weighted_avr[0]:
-                try:
-                    mapping = mapper.toFreqAmpl(w)
-                    emitter.sendMessage(mapping)
-                    sleep(0.5)
-                except TypeError:
-                    print("ERROR with toFreqAmpl...")
-                    emitter.sendMessage(mapping)
-                    sleep(0.5)
+                for w in weighted_avr[0]:
+                    try:
+                        mapping = mapper.toFreqAmpl(w)
+                        emitter.sendMessage(mapping)
+                        sleep(0.5)
+                    except TypeError:
+                        print("ERROR with toFreqAmpl...")
+                        emitter.sendMessage(mapping)
+                        sleep(0.5)

@@ -31,7 +31,7 @@ class Connection:
         self.ip = ip
         self.ports = [ports] if not isinstance(ports, list) else ports
         self.message_queues = None
-        self.buff_size = 100000
+        self.buff_size = 32767
 
     def _prepare_data(self, message: dict, data: dict):
         """
@@ -79,8 +79,7 @@ class Connection:
         data_to_prepare = {}
 
         try:
-            emg = data["emg_server"]
-            data_to_prepare["emg_server"] = emg
+            data_to_prepare["emg_proc"] = data["emg_proc"]
             data_to_prepare["sampling_rate"] = data["sampling_rate"] 
             data_to_prepare["system_rate"] = data["system_rate"]
             data_to_prepare["n_electrode"] = data["n_electrode"]
@@ -106,7 +105,7 @@ class Connection:
         data : dict
             The data checked and adjusted.
         """
-
+    
         for key in data.keys():
             if isinstance(data[key], int):
                 data[key] = [data[key]]
@@ -154,6 +153,7 @@ class Server(Connection):
             raise RuntimeError(f"Invalid type of connexion ({type}). Type must be 'TCP' or 'UDP'.")
         try:
             self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.server.settimeout(0.1) # NEW LINE BY KARL
             self.server.bind((self.ip, self.port))
             if self.type != "UDP":
                 self.server.listen(10)
@@ -163,31 +163,23 @@ class Server(Connection):
         except ConnectionError:
             raise RuntimeError("Unknown error. Server is not listening.")
 
-    def close(self):
-        """
-        Close the server.
-        """
-        self.server.close()
-
-    def client_listening(self, data: dict):
+    def client_listening(self):
         """
         Listen to the client.
-
         Parameters
         ----------
         data : dict
             Data to send to the client function of message
         """
         connection, ad = self.server.accept()
-        message = json.loads(connection.recv(self.buff_size))
-        data_to_send = self._prepare_data(message, data)
-        self._send_data(data_to_send, connection)
+        return connection
 
-    @staticmethod
-    def _send_data(data, connection):
+    def receive_message(self, connection):
+        return json.loads(connection.recv(self.buff_size))
+
+    def send_data(self, data, connection, message):
         """
         Send the data to the client.
-
         Parameters
         ----------
         data : dict
@@ -195,12 +187,15 @@ class Server(Connection):
         connection : socket.socket
             The connection to send the data to.
         """
-
-        encoded_data = json.dumps(data).encode()
+        
+        data_to_send = self._prepare_data(message, data)
+        # if self.optim is not True:
+        #     print("Sending data to client...")
+        encoded_data = json.dumps(data_to_send).encode()
         encoded_data = struct.pack('>I', len(encoded_data)) + encoded_data
         try:
             connection.sendall(encoded_data)
-            # print(f"data sent : {data}")
+            print(f"data sent: {data_to_send}")
         except ConnectionError:
             pass
 
@@ -229,7 +224,6 @@ class OscClient(Connection):
     def __adjust_dims(data: dict, device_to_send: dict):
         """
         Adjust the dimensions of the data to send.
-
         Parameters
         ----------
         data : dict
@@ -246,15 +240,6 @@ class OscClient(Connection):
                 emg_proc = np.array(data["emg_proc"])[:, -1:]
                 emg_proc = emg_proc.reshape(emg_proc.shape[0])
                 data_to_return.append(emg_proc.tolist())
-            # elif key == "imu":
-            #     imu = np.array(data["imu_proc"])[:, :, -1:]
-            #     data_to_return.append(imu.tolist())
-            #     accel_proc = imu[:, :3, :]
-            #     accel_proc = accel_proc.reshape(accel_proc.shape[0])
-            #     data_to_return.append(accel_proc.tolist())
-            #     gyro_proc = imu[:, 3:6, :]
-            #     gyro_proc = gyro_proc.reshape(gyro_proc.shape[0])
-            #     data_to_return.append(gyro_proc.tolist())
             else:
                 raise RuntimeError(f"Unknown device ({key}) to send. Possible devices are 'emg' and 'imu'.")
 
@@ -275,11 +260,10 @@ class OscClient(Connection):
         for key in device_to_send:
             if key == "emg":
                 self.osc[0].send_message("/emg", data[0])
-            # elif key == "imu":
-            #     idx = 1 if key in "emg" in device_to_send else 0
-            #     self.osc[0].send_message("/imu/", data[idx])
-            #     self.osc[0].send_message("/accel/", data[idx + 1])
-            #     self.osc[0].send_message("/gyro/", data[idx + 2])
+            elif key == "imu":
+                idx = 1 if key in "emg" in device_to_send else 0
+                self.osc[0].send_message("/imu/", data[idx])
+                self.osc[0].send_message("/accel/", data[idx + 1])
+                self.osc[0].send_message("/gyro/", data[idx + 2])
             else:
                 raise RuntimeError(f"Unknown device ({key}) to send. Possible devices are 'emg' and 'imu'.")
-
