@@ -2,9 +2,9 @@
 from biosiglive.streaming.client import Client, Message
 import numpy as np
 import pandas as pd
-from biosiglive.processing.mappEMG import Mapper
-from biosiglive.processing.mappEMG import EMGprocess
-from biosiglive.processing.mappEMG import Emitter
+from processing import Mapper
+from processing import EMGprocess
+from processing import Emitter
 from biosiglive.processing.data_processing import GenericProcessing
 from time import sleep
 
@@ -129,7 +129,7 @@ if __name__ == '__main__':
             
             data = client.get_data(message)
             emg = np.array(data["emg_proc"])
-            print(emg.shape)
+            print(emg)
 
             ##### PROCESSING #####
             perc_mvc = generic_processing.normalize_emg(emg, list_mvc)

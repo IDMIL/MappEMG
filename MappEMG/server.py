@@ -38,7 +38,7 @@ class RunServer():
                 try:
                     sensor_interface = BitalinoClient(ip=self.bluetooth_address)
                     sensor_interface.add_device(
-                        "Bitalino", rate=self.device_sampling_rate, system_rate=self.server_acquisition_rate, acq_channels=acq_channels)
+                        "Bitalino", rate=self.device_sampling_rate, system_rate=self.server_acquisition_rate, acq_channels=self.acq_channels)
                 except:
                     raise RuntimeError(
                         "Could not create Bitalino connection. Make sure you bluetooth is activated and you have the correct bitalino address.")
