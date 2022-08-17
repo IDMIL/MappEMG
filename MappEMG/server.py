@@ -11,11 +11,11 @@ from biosiglive.processing.data_processing import OfflineProcessing
 
 class RunServer():
 
-    def __init__(self, with_connection=False, sensorkit=None, address_bitalino=None, acq_channels=0):
+    def __init__(self, with_connection=False, sensorkit=None, bluetooth_address=None, acq_channels=[]):
         
         self.sensorkit = sensorkit
         self.with_connection = with_connection
-        self.address_bitalino = address_bitalino
+        self.bluetooth_address = bluetooth_address
         self.acq_channels = acq_channels
         self.device_sampling_rate = 1000
         self.streaming_rate = 100
@@ -23,12 +23,10 @@ class RunServer():
         self.n_electrode = len(acq_channels)
 
         manager = mp.Manager()
-        self.server_queue = manager.Queue()
-        self.emg_queue_in = manager.Queue()
-        self.emg_queue_out = manager.Queue()
-        self.event_emg = mp.Event()
-
-        self.process = mp.Process
+        self.__emg_queue_in = manager.Queue()
+        self.__emg_queue_out = manager.Queue()
+        self.__event_emg = mp.Event()
+        self.__process = mp.Process
 
     def run_sensor_acquisition(self):
 
@@ -38,7 +36,7 @@ class RunServer():
             
             if self.sensorkit == 'bitalino':
                 try:
-                    sensor_interface = BitalinoClient(ip=self.address_bitalino)
+                    sensor_interface = BitalinoClient(ip=self.bluetooth_address)
                     sensor_interface.add_device(
                         "Bitalino", rate=self.device_sampling_rate, system_rate=self.server_acquisition_rate, acq_channels=acq_channels)
                 except:
@@ -84,7 +82,7 @@ class RunServer():
                             sleep(5)
                             sensor_interface.close()
                             sleep(10)
-                            sensor_interface = BitalinoClient(ip=self.address_bitalino)
+                            sensor_interface = BitalinoClient(ip=self.bluetooth_address)
                             sensor_interface.add_device(
                                 "Bitalino", rate=self.device_sampling_rate, system_rate=self.server_acquisition_rate, acq_channels=self.acq_channels)
                             sensor_interface.start_acquisition()
@@ -99,8 +97,8 @@ class RunServer():
                     emg_tmp = sensor_interface.get_device_data(device_name="Pytrigno")[0]
             
             # STEP 1 - Put DICT into Queue IN
-            self.emg_queue_in.put_nowait({"emg_tmp": emg_tmp})
-            #print("Step -- 1")
+            self.__emg_queue_in.put_nowait({"emg_tmp": emg_tmp})
+
 
     def run_emg_processing(self):
 
@@ -119,8 +117,7 @@ class RunServer():
         while True:
             try:
                 # STEP 2 - Take DICT from Queue IN
-                emg_data = self.emg_queue_in.get_nowait()
-                #print("Step -- 2")
+                emg_data = self.__emg_queue_in.get_nowait()
                 is_working = True
             except:
                 is_working = False
@@ -130,11 +127,9 @@ class RunServer():
                 emg_raw.enqueue(emg_tmp)
                 emg_proc = emg_processing.process_emg(data=emg_raw.queue, frequency=self.device_sampling_rate, ma=True)
                 # STEP 3 - Put DICT into Queue OUT
-                self.emg_queue_out.put({"emg_proc": emg_proc[:,-self.streaming_rate:]}) # Only send n streaming_rate samples
-                #print("Step -- 3")
+                self.__emg_queue_out.put({"emg_proc": emg_proc[:,-self.streaming_rate:]}) # Only send n streaming_rate samples
                 # STEP 4 - Set event to let other process know it is ready
-                self.event_emg.set()
-                #print("Step -- 4")
+                self.__event_emg.set()
 
     def run_streaming(self):
 
@@ -154,13 +149,11 @@ class RunServer():
                     pass
             
             # STEP 5 - Wait for event
-            self.event_emg.wait()
-            #print("Step -- 5")
+            self.__event_emg.wait()
             # STEP 6 - Take DICT from Queue OUT
-            data = self.emg_queue_out.get_nowait()
-            #print("Step -- 6")
+            data = self.__emg_queue_out.get_nowait()
             # STEP 7 - Release lock
-            self.event_emg.clear()
+            self.__event_emg.clear()
             #print("Step -- 7")
             data_to_send = {}
             data_to_send["emg_proc"] = data["emg_proc"]
@@ -181,11 +174,12 @@ class RunServer():
 
         print("\nStarting Server...\n")
 
+        # TODO: include LiveData plots
         # process(name="reader", target=LiveData.save_streamed_data, args=(self,))]
         processes = []
-        processes.append(self.process(name="acquire_emg", target=RunServer.run_sensor_acquisition, args=(self,)))
-        processes.append(self.process(name="process_emg", target=RunServer.run_emg_processing, args=(self,)))
-        processes.append(self.process(name="stream_emg",  target=RunServer.run_streaming, args=(self,)))
+        processes.append(self.__process(name="acquire_emg", target=RunServer.run_sensor_acquisition, args=(self,)))
+        processes.append(self.__process(name="process_emg", target=RunServer.run_emg_processing, args=(self,)))
+        processes.append(self.__process(name="stream_emg",  target=RunServer.run_streaming, args=(self,)))
 
         for p in processes:
             p.start()
@@ -195,46 +189,42 @@ class RunServer():
 
 if __name__ == '__main__':
 
+    # Verify if user wants real device connected
     with_connection = None
     while with_connection not in ['y', 'n']:
         with_connection = input(
             "\nWith device connected? (y, or n for random data): ")
     with_connection = True if with_connection == 'y' else False
 
-    #### read bitalino bluetooth address if there is a connection ####
-    address_bitalino = None
+    # Verify which real device they want
+    what_device = None
     if with_connection:
-        print("\nThe macAddress variable on Windows can be \"XX:XX:XX:XX:XX:XX\" or \"COMX\" \n while on Mac OS can be \"/dev/tty.BITalino-XX-XX-DevB\"")
-        address_bitalino = input(
-            "\nBitalino Address (leave empty if \"/dev/tty.BITalino-7E-19-DevB\"): ")
-        if address_bitalino == "":
-            address_bitalino = "/dev/tty.BITalino-7E-19-DevB"
+        while what_device not in ['bitalino', 'vicon', 'pytrigno']:
+            what_device = input("\nWhat device? (bitalino, vicon, or pytrigno): ")
 
-    #### set acquisition channels ####
-    acq_channels = ['']
-    boo = True
-    while acq_channels == [''] or boo:
-        if acq_channels == ['']:
-            acq_channels = input(
-                "\nEnter list of acquisition channels (e.g. for A1 A2 A3, write 1 2 3): ").split(" ")
-        elif boo:  # always true so always checked
-            try:
-                acq_channels = [int(c) for c in acq_channels]
-                if not all(int(channel) > 0 and int(channel) < 7 for channel in acq_channels):
-                    print(
-                        "\nInvalid acquisition channels (make sure they are seperated by a space...)")
-                    acq_channels = input(
-                        "\nEnter list of acquisition channels (e.g. for A1 A2 A3, write 1 2 3): ").split(" ")
-                else:
-                    break
-            except ValueError:
-                acq_channels = input(
-                    "\nEnter list of acquisition channels (e.g. for A1 A2 A3, write 1 2 3): ").split(" ")
+        # Read bitalino bluetooth address if there is a connection
+        if what_device == 'bitalino':
+            bluetooth_address = None
+            if with_connection:
+                print("\nThe macAddress variable on Windows can be \"XX:XX:XX:XX:XX:XX\" or \"COMX\" \n while on Mac OS can be \"/dev/tty.BITalino-XX-XX-DevB\"")
+                # TODO: remove shortcut from main application
+                bluetooth_address = input(
+                    "\nBitalino bluetooth address (leave empty if \"/dev/tty.BITalino-7E-19-DevB\"): ")
+                if bluetooth_address == "":
+                    bluetooth_address = "/dev/tty.BITalino-7E-19-DevB"
 
-    n_electrode = len(acq_channels)
-    for i in range(n_electrode):
-        acq_channels[i] = int(acq_channels[i]) - 1
+    # Set acquisition channels (number of sensors)
+    acq_channels = None
+    while acq_channels == None:
+        acq_channels = input("\nEnter list of acquisition channels (e.g. for A1 A2 A3, write 1 2 3): ").split(" ")
+        try:
+            acq_channels = [int(c)-1 for c in acq_channels]
+            if not all(channel >= 0 and channel <= 6 for channel in acq_channels):
+                print("\nInvalid acquisition channels (make sure they are separated by a space...)")
+                acq_channels = None
+        except:
+            acq_channels = None
 
-    local_server = RunServer(with_connection, 'bitalino', address_bitalino, acq_channels)
-
+    # Run server with information provided
+    local_server = RunServer(with_connection, what_device, bluetooth_address, acq_channels)
     local_server.run()
