@@ -21,14 +21,23 @@ if __name__ == '__main__':
     
     # Get data from server and close connection
     client = Client(server_ip=server_ip, port=server_port)
+    print('client created')
     message = Message(command=['emg'], nb_frame_to_get=1)
+    print('message created')
     client.connect()
+    print('client connected')
     data = client.get_data(message)
+    print('message sent to client')
     system_rate = data['system_rate'][0]
+    print('system rate gotten')
     read_freq = data['sampling_rate'][0]
+    print('sampling rate gotten')
     n_electrode = data['n_electrode'][0]
+    print('n electrodes gotten')
     message = Message(command=['close'], nb_frame_to_get=1)
+    print('new message created')
     client.get_data(message)
+    print('client getting message')
 
     # Load MVC data from previous trials or random
     load_mvc = None

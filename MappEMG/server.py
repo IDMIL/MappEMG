@@ -55,11 +55,10 @@ class RunServer():
                     raise RuntimeError("Could not create Vicon connection.")
             
             if self.sensorkit == 'pytrigno':
-                try:
-                    sensor_interface = PytrignoClient()
-                    sensor_interface.add_device("Pytrigno", range=(0, self.n_electrode), rate=self.server_acquisition_rate)
-                except:
-                    raise RuntimeError("Could not create Pytrigno connection.")
+                sensor_interface = PytrignoClient()
+                sensor_interface.add_device("Pytrigno", range=(0, self.n_electrode-1), rate=1000) #device smapling rate
+                # except:
+                #     raise RuntimeError("Could not create Pytrigno connection.")
 
                 
 
@@ -95,6 +94,8 @@ class RunServer():
                 
                 if self.sensorkit == 'pytrigno':
                     emg_tmp = sensor_interface.get_device_data(device_name="Pytrigno")[0]
+                    #print(type(emg_tmp))
+                    #print(emg_tmp,"\n\n")
             
             # STEP 1 - Put DICT into Queue IN
             self.__emg_queue_in.put_nowait({"emg_tmp": emg_tmp})
