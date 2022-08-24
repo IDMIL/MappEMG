@@ -12,22 +12,23 @@ if __name__ == '__main__':
 
     print("Client starting...")
 
-    type_of_data = ["emg"]
-
     # Server's host and port
-    input_host_ip = input("\nConnect to host address (leave empty for \"localhost\"): ")
-    host_ip = 'localhost' if input_host_ip == '' else input_host_ip
-    input_host_port = input("\nConnect to host port (leave empty for \"5005\"): ")
-    host_port = 5005 if input_host_port == '' else int(input_host_port)
+    input_server_ip = input("\nConnect to host address (leave empty for \"localhost\"): ")
+    server_ip = 'localhost' if input_server_ip == '' else input_server_ip
+    input_server_port = input("\nConnect to host port (leave empty for \"5005\"): ")
+    server_port = 5005 if input_server_port == '' else int(input_server_port)
 
     
-    # TODO: Get data from server first
-    # dummy_message = Message(command=type_of_data, nb_frame_to_get=1)
-    # client = Client(server_ip=host_ip, port=host_port, type="TCP")
-    # data = client.get_data(dummy_message)
-    system_rate = 1000 #data['system_rate'][0]
-    read_freq = 100   #data['sampling_rate'][0]
-    n_electrode = 2  #data['n_electrode'][0]
+    # Get data from server and close connection
+    client = Client(server_ip=server_ip, port=server_port)
+    message = Message(command=['emg'], nb_frame_to_get=1)
+    client.connect()
+    data = client.get_data(message)
+    system_rate = data['system_rate'][0]
+    read_freq = data['sampling_rate'][0]
+    n_electrode = data['n_electrode'][0]
+    message = Message(command=['close'], nb_frame_to_get=1)
+    client.get_data(message)
 
     # Load MVC data from previous trials or random
     load_mvc = None
@@ -115,8 +116,8 @@ if __name__ == '__main__':
 
     # Gets the data from the server.
     # Create a client to get data from server
-    client = Client(server_ip=host_ip, port=host_port)
-    message = Message(command=type_of_data, nb_frame_to_get=100)
+    client = Client(server_ip=server_ip, port=server_port)
+    message = Message(command=['emg'], nb_frame_to_get=100)
 
     connected = False
     

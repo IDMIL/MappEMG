@@ -3,10 +3,9 @@ This file is part of biosiglive. it is an example to see how to use biosiglive t
  contraction from EMG signals.
 """
 
-from time import strftime
+from time import strftime, time, sleep
 from biosiglive.processing.data_processing import OfflineProcessing
 from biosiglive.gui.plot import LivePlot, Plot
-from time import time, sleep
 import os
 import numpy as np
 import pandas as pd
@@ -17,7 +16,6 @@ from biosiglive.streaming.client import Client, Message
 
 class ComputeMvc:
     def __init__(self, output_file: str = None,
-                 muscle_names: list = None,
                  with_connection: bool = True,
                  server_ip: str = None,
                  server_port: int = None
@@ -33,116 +31,53 @@ class ComputeMvc:
             The port of the server.
         output_file : str
             The path of the output file.
-        muscle_names : list
-            The list of the muscle names.
-        frequency : float
-            The frequency of the device.
-        acquisition_rate : float
-            The acquisition rate of the acquisition.
-        mvc_windows : int
-            size of the window to compute the mvc.
         with_connection : bool
             If True, the program will try to connect to the device.
-        range_muscle : tuple
-            The range of the muscle to compute the mvc.
         """
         # Set MVC output file name
         current_time = strftime("%Y%m%d-%H%M")
         self.output_file = f"_{current_time}.csv" if not output_file else output_file
 
         # Set server connection parameters
-        self.server_ip = server_ip # "localhost" or None
-        self.server_port = server_port # 5002 or None
-
-        # Set muscle information
-        self.muscle_names = muscle_names
-        self.nb_muscles = len(self.muscle_names)
+        self.server_ip = server_ip
+        self.server_port = server_port
 
         # Set frequency and acquisition parameters depending on connection
         self.with_connection = with_connection
         if self.with_connection:
-            message = Message(command=["emg"], nb_frame_to_get=1)
-
-            client = Client(server_ip=self.server_ip, port=self.server_port, type="TCP")
-            data = client.get_data(message)
-            sleep(1)
+            
+            client = Client(server_ip=server_ip, port=server_port)
+            message = Message(command=['emg'], nb_frame_to_get=1)
+            client.connect()
+            data = client.get_data(message) # Get number of electrodes from server
+            self.n_electrodes = np.array(data['emg_proc']).shape[0]
+            # Close connection
+            message = Message(command=['close'])
+            client.get_data(message)
+            
+            print("Total of {} electrodes connected".format(self.n_electrodes))
+            muscle_names = []
+            for i in range(self.n_electrodes):
+                muscle_names.append(input("Give a name to muscle #{}: ".format(i+1)))
+            self.muscle_names = muscle_names
             self.frequency = data['sampling_rate'][0]
             self.acquisition_rate = data['system_rate'][0]
+
         else:
             self.frequency = 1000
             self.acquisition_rate = 10
 
+        # Set Live Plot parameters
         self.show_data = False
-        self.plot_app, self.rplt, self.layout, self.app, self.box = None, None, None, None, None
-        self.is_processing_method = False
         self.try_number = 0
-
-        self.emg_processing = None
-        self.moving_average, self.low_pass, self.custom = None, None, None
+        self.plot_app, self.rplt, self.layout, self.app, self.box = None, None, None, None, None 
 
         self.first_trial = True
         self.try_name = ""
         self.try_list = []
-        self.emg_interface = None
 
         # Delete tmp file if it still exists
         self._delete_tmp()
-
-    def set_processing_method(self,
-                              moving_average: bool = True,
-                              low_pass: bool = False,
-                              custom: bool = False,
-                              custom_function: callable = None,
-                              bandpass_frequency: tuple = (10, 425),
-                              lowpass_frequency: float = 5,
-                              lowpass_order: int = 4,
-                              butterworth_order: int = 4,
-                              ma_window: int = 100,
-                              ):
-        """
-        Set the emg processing method.
-
-        Parameters
-        ----------
-        moving_average : bool
-            If True, the emg data will be processed with a moving average.
-        low_pass : bool
-            If True, the emg data will be processed with a low pass filter.
-        custom : bool
-            If True, the emg data will be processed with a custom function.
-        custom_function : callable
-            The custom function. Input : raw data, device frequency Output : processed data.
-        bandpass_frequency : tuple
-            The frequency of the bandpass filter.
-        lowpass_frequency : float
-            The frequency of the low pass filter.
-        lowpass_order : int
-            The order of the low pass filter.
-        butterworth_order : int
-            The order of the butterworth filter.
-        ma_window : int
-            The size of the moving average window.
-        """
-
-        self.moving_average = moving_average
-        self.low_pass = low_pass
-        self.custom = custom
-        if [moving_average, custom, low_pass].count(True) > 1:
-            raise ValueError("Only one processing method can be selected")
-        if custom and not custom_function:
-            raise ValueError("custom_function must be defined")
-        if custom:
-            self.emg_processing = custom_function
-        else:
-            emg_processing = OfflineProcessing()
-            emg_processing.bpf_lcut = bandpass_frequency[0]
-            emg_processing.bpf_hcut = bandpass_frequency[1]
-            emg_processing.lpf_lcut = lowpass_frequency
-            emg_processing.lp_butter_order = lowpass_order
-            emg_processing.bp_butter_order = butterworth_order
-            emg_processing.ma_win = ma_window
-            self.emg_processing = emg_processing.process_emg
-        self.is_processing_method = True
 
     def run(self, show_data: bool = False):
         """
@@ -158,11 +93,10 @@ class ComputeMvc:
         while True:
             if show_data:
                 self.rplt, self.layout, self.app, self.box = self._init_live_plot(multi=True)
-            nb_frame, var, duration = self._init_trial()
+            var, duration = self._init_trial()
             
-
             # Get data from mvc trial
-            trial_emg = self._mvc_trial(duration, nb_frame, var)
+            trial_emg = self._mvc_trial(duration, var)
             # Plot the raw emg data collected
             self._plot_trial(trial_emg)
 
@@ -203,8 +137,6 @@ class ComputeMvc:
 
         Returns
         -------
-        nb_frame : int
-            The number of frames of the trial.
         var : float
             The current iteration.
         duration : float
@@ -224,9 +156,8 @@ class ComputeMvc:
         self.try_list.append(self.try_name)
         t = input(
             f"Ready to start trial: {self.try_name}, with muscles :{self.muscle_names}. "
-            f"Press enter to begin your MVC. or enter a number of seconds."
+            f"Press enter to begin your MVC or enter a number of seconds."
         )
-        nb_frame = 0
         try:
             float(t)
             iter = float(t) * (self.frequency/self.acquisition_rate)
@@ -235,9 +166,9 @@ class ComputeMvc:
         except ValueError:
             var = -1
             duration = False
-        return nb_frame, var, duration
+        return var, duration
 
-    def _mvc_trial(self, duration: float, nb_frame: int, var: float):
+    def _mvc_trial(self, duration: float, var: float):
         """
         Run the MVC trial.
         Parameters
@@ -256,35 +187,33 @@ class ComputeMvc:
         """
         data = None
         if self.with_connection is True:
-            # getting message to read info from server first, then moddify message
-            # create message
             type_of_data = ["emg"]
             message = Message(command=type_of_data,
                       nb_frame_to_get=self.acquisition_rate)
-        dummy = 0
+            client = Client(server_ip=self.server_ip, port=self.server_port, type="TCP")
         
+        dummy = 0
+        connected = False
+        nb_frame = 0
+        if var == -1:
+            print("\nTrial is running...\nPlease press 'Ctrl+C' to finsish trial.\n")
         while True:
             try:
-                if nb_frame == 0:
-                    print(
-                        "Trial is running please press 'Ctrl+C' when trial is ended "
-                        "(it will not end the program)."
-                    )
-
                 if self.with_connection is True:
-                    # Create a client to connect to server
-                    client = Client(server_ip=self.server_ip, port=self.server_port, type="TCP")
-                    # Get data streamed from server
-                    if dummy == 0:
-                        a = datetime.datetime.now() # timing check purposes
-                        print("Got data from server at time", a)
-                        dummy = 1
-                    client_data= client.get_data(message)
-                    #time.sleep(1)
-                    emg = np.array(client_data['emg_server'])
-                    data_tmp = emg
+                    if not connected:
+                        client.connect()
+                        connected = True
+                    if connected:
+                        # Get data streamed from server
+                        if dummy == 0:
+                            a = datetime.datetime.now() # timing check purposes
+                            print("Got data from server at time", a)
+                            dummy = 1
+
+                        client_data= client.get_data(message)
+                        emg = np.array(client_data['emg_proc'])
+                        data_tmp = emg
                 else:
-                    #data_tmp = np.random.random((self.nb_muscles, int(self.acquisition_rate)))
                     data_tmp = np.random.randint(1024, size=(self.nb_muscles, int(self.acquisition_rate)))
                     data_tmp = (data_tmp/(2**10)-0.5)*3.3/1009*1000
                 tic = time()
@@ -339,28 +268,12 @@ class ComputeMvc:
         data = raw_data
         legend = ["Processed MVC trial"]
         nb_column = 4 if raw_data.shape[0] > 4 else raw_data.shape[0]
-        n_p = 0
         plot_comm = "y"
         print(f"Trial {self.try_name} terminated. ")
         while plot_comm != "n":
-            if n_p == 0:
-                plot_comm = input(f"Would you like to plot your trial ? 'y'/'n'")
-            if n_p != 0:
-                plot_comm = input(f"Would you like to plot again ? 'y'/'n'")
-
+            plot_comm = input(f"Would you like to plot your trial ? 'y'/'n'")
             if plot_comm == "y":
 
-                # plot = input(
-                #     f"Press 'pr' to plot your raw trial,"
-                #     f" 'p' to plot your processed trial, 'b' to plot both or 'c' to continue,"
-                #     f" then press enter."
-                # )
-                # while plot not in ["p", "pr", "c", "b"]:
-                #     print(f"Invalid entry ({plot}). Please press 'p', 'pr', 'b',  or 'c' (in lowercase).")
-                #     plot = input(
-                #         f"Press 'pr' to plot your raw trial,"
-                #         f"'p' to plot your processed trial or 'c' to continue then press enter."
-                #     )
                 legend = legend * raw_data.shape[0]
                 x = np.linspace(0, raw_data.shape[1] / self.frequency, raw_data.shape[1])
                 print("Close the plot windows to continue.")
@@ -372,54 +285,7 @@ class ComputeMvc:
                                     subplot_title=self.muscle_names,
                                     figure_name=self.try_name,
                                     x=x)
-                # if plot != "c":
-                #     if plot == "pr":
-                #         data = raw_data
-                #         legend = ["Raw"]
-                #     if plot == "p":
-                #         # data = processed_data
-                #         # legend = ["Processed"]
-                #         print("Not implemented")
-                #     elif plot == "b":
-                #         # data = [raw_data, processed_data]
-                #         # legend = ["Raw", "Processed"]
-                #         print("Not implemented")
-                #     legend = legend * raw_data.shape[0]
-                #     x = np.linspace(0, raw_data.shape[1] / self.frequency, raw_data.shape[1])
-                #     print("Close the plot windows to continue.")
-                #     Plot().multi_plot(data,
-                #                       nb_column=nb_column,
-                #                       y_label="Activation level (mV)",
-                #                       x_label="Time (s)",
-                #                       legend=legend,
-                #                       subplot_title=self.muscle_names,
-                #                       figure_name=self.try_name,
-                #                       x=x)
-            else:
-                pass
-            n_p += 1
 
-    def _process_emg(self, data, save_tmp=True):
-        """
-        Process the EMG data.
-
-        Parameters
-        ----------
-        data : numpy.ndarray
-            The raw EMG data of the trial.
-        save_tmp : bool
-            If True, the processed data is saved in a temporary file.
-
-        Returns
-        -------
-        numpy.ndarray
-            The processed EMG data of the trial.
-        """
-        if not self.is_processing_method:
-            self.set_processing_method()
-        emg_processed = self.emg_processing(data, self.frequency, pyomeca=self.low_pass, ma=self.moving_average)
-
-        return emg_processed, data
 
     def _init_live_plot(self, multi=True):
         """
@@ -452,12 +318,6 @@ class ComputeMvc:
         if self.plot_app is not None:
             plot_data = data if nb_frame*self.acquisition_rate < 5*self.frequency else data[:, -5*self.frequency:]
             self.plot_app.update_plot_window(self.plot_app.plot[0], plot_data, self.app, self.rplt, self.box)
-
-    def get_data(self):
-        """
-        Get the EMG data from defined emg_interface.
-        """
-        return self.emg_interface.devices[0].get_device_data(stream_now=True, get_names=True)
 
     def _save_trial(self):
         """
@@ -512,16 +372,8 @@ if __name__ == "__main__":
     server_ip = "localhost" if mvc_with_connection else None
     server_port = 5005 if mvc_with_connection else None
 
-    # TODO: get number of sensors from the server
-    # Define number of muscles and muscle names
-    n_electrodes = int(input("\nHow many muscles will be used (e.g. for 2 muscles, write 2): "))
-    muscle_names = []
-    for i in range(n_electrodes):
-        muscle_names.append(input("Give a name to muscle #{}: ".format(i+1)))
-
     MVC = ComputeMvc(
         with_connection=mvc_with_connection,
-        muscle_names=muscle_names,
         server_ip = server_ip,
         server_port = server_port
     )

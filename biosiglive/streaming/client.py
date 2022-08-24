@@ -13,31 +13,14 @@ Buff_size = 32767
 class Message:
     def __init__(self,
                  command: list = (),
-                 read_frequency: float = 100,
-                 nb_frame_to_get: int = 1,
-                 get_names: bool = None,
-                 mvc_list: list = None,
-                 kalman: bool = None,
-                 get_raw_data: bool = False,
-                 ratio: int = 1,
-                 **kwargs):
+                 nb_frame_to_get: int = 1
+                 ):
         """
         Message class
         """
 
         self.command = command
-        self.emg_windows = 2000
-        self.get_names = False
-        self.nb_frames_to_get = 1
-        self.get_names = get_names
-        self.mvc_list = mvc_list
-        self.kalman = kalman
-        self.read_frequency = read_frequency
         self.nb_frames_to_get = nb_frame_to_get
-        self.raw_data = get_raw_data
-        self.ratio = ratio
-        for key in kwargs.keys():
-            self.__setattr__(key, kwargs[key])
 
     def update_command(self, name: Union[str, list], value: Union[bool, int, float, list, str]):
         """
@@ -55,16 +38,6 @@ class Message:
 
         for i, name in enumerate(names):
             self.__setattr__(name, values[i])
-
-    def get_command(self):
-        """
-        Get the command.
-        Returns
-        -------
-        message: Message.dic
-            Message containing the command.
-        """
-        return self.command
 
     def add_command(self, name: str, value: Union[bool, int, float, list, str]):
         """
@@ -127,7 +100,6 @@ class Client:
         """
         if type == "TCP" or type is None:
             return socket.socket()
-        # socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         elif type == "UDP":
             return socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         else:
@@ -171,10 +143,5 @@ class Client:
         data: dict
             Data from server.
         """
-        # if initialize:
-        #     self.client = self.client_sock(self.type)
-        # if not isinstance(message, str):
-        #     message = message.__dict__
-        #self._connect()
         self.client.sendall(json.dumps(message.__dict__).encode())
         return self._recv_all(buff)
