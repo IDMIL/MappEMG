@@ -2,6 +2,7 @@ import socket
 import numpy as np
 from time import sleep
 import multiprocessing as mp
+from biosiglive.gui.plot import LivePlot
 from biosiglive.interfaces.pytrigno_interface import PytrignoClient
 from biosiglive.interfaces.vicon_interface import ViconClient
 from biosiglive.processing.utils import NumpyQueue
@@ -55,12 +56,11 @@ class RunServer():
                     raise RuntimeError("Could not create Vicon connection.")
             
             if self.sensorkit == 'pytrigno':
-                sensor_interface = PytrignoClient()
-                sensor_interface.add_device("Pytrigno", range=(0, self.n_electrode-1), rate=1000) #device smapling rate
-                # except:
-                #     raise RuntimeError("Could not create Pytrigno connection.")
-
-                
+                try: 
+                    sensor_interface = PytrignoClient()
+                    sensor_interface.add_device("Pytrigno", range=(0, self.n_electrode-1), rate=self.device_sampling_rate)
+                except:
+                    raise RuntimeError("Could not create Pytrigno connection.")
 
         while True:
 
@@ -94,12 +94,9 @@ class RunServer():
                 
                 if self.sensorkit == 'pytrigno':
                     emg_tmp = sensor_interface.get_device_data(device_name="Pytrigno")[0]
-                    #print(type(emg_tmp))
-                    #print(emg_tmp,"\n\n")
             
             # STEP 1 - Put DICT into Queue IN
             self.__emg_queue_in.put_nowait({"emg_tmp": emg_tmp})
-
 
     def run_emg_processing(self):
 
@@ -114,6 +111,18 @@ class RunServer():
         emg_processing.bp_butter_order = 4
 
         emg_raw = NumpyQueue(max_size=1000, queue=np.zeros(shape=(self.n_electrode, 1000)), base_value=0)
+
+        # Start Raw EMG Live Plot
+        raw_plot = LivePlot()
+        raw_plot.add_new_plot("Raw EMG", "curve", [str(c) for c in self.acq_channels])
+        raw_rplt, raw_layout, raw_app, raw_box = raw_plot.init_plot_window(plot=raw_plot.plot[0], use_checkbox=True)
+        raw_queue_to_plot = NumpyQueue(max_size=5000, queue=np.zeros((self.n_electrode, 5000)), base_value=0)
+
+        # Start Raw EMG Live Plot
+        proc_plot = LivePlot()
+        proc_plot.add_new_plot("Proc EMG", "curve", [str(c) for c in self.acq_channels])
+        proc_rplt, proc_layout, proc_app, proc_box = proc_plot.init_plot_window(plot=proc_plot.plot[0], use_checkbox=True)
+        proc_queue_to_plot = NumpyQueue(max_size=5000, queue=np.zeros((self.n_electrode, 5000)), base_value=0)
         
         while True:
             try:
@@ -124,9 +133,24 @@ class RunServer():
                 is_working = False
 
             if is_working:
+
+                # Get raw data from DICT from Queue IN
                 emg_tmp = np.array(emg_data["emg_tmp"])
                 emg_raw.enqueue(emg_tmp)
+
+                # Raw data live plot
+                if raw_plot is not None:
+                    raw_queue_to_plot.enqueue(emg_tmp)
+                    raw_plot.update_plot_window(raw_plot.plot[0], raw_queue_to_plot.queue, raw_app, raw_rplt, raw_box)
+
+                # Process data
                 emg_proc = emg_processing.process_emg(data=emg_raw.queue, frequency=self.device_sampling_rate, ma=True)
+
+                # Processed data live plot
+                if proc_plot is not None:
+                    proc_queue_to_plot.enqueue(np.full((self.n_electrode,self.streaming_rate), np.average(emg_proc[:,-self.streaming_rate:])))
+                    proc_plot.update_plot_window(proc_plot.plot[0], proc_queue_to_plot.queue, proc_app, proc_rplt, proc_box)
+                
                 # STEP 3 - Put DICT into Queue OUT
                 self.__emg_queue_out.put({"emg_proc": emg_proc[:,-self.streaming_rate:]}) # Only send n streaming_rate samples
                 # STEP 4 - Set event to let other process know it is ready
@@ -179,13 +203,25 @@ class RunServer():
                     connected = False
                     print("\nClosing connection... \nListening to new client...\n")
 
+    # def run_live_plot(self):
+        
+    #     plot_app = LivePlot()
+    #     plot_app.add_new_plot("EMG", "curve") #, self.muscle_names)
+    #     rplt, layout, app, box = plot_app.init_plot_window(plot=self.plot_app.plot[0], use_checkbox=True)
+    #     # return rplt, layout, app, box
+
+    #     while(True):
+    #         if plot_app is not None:
+    #             plot_data = data if nb_frame*self.acquisition_rate < 5*self.frequency else data[:, -5*self.frequency:]
+    #             plot_app.update_plot_window(plot_app.plot[0], plot_data, app, rplt, box)
+
     def run(self):
 
         print("\nStarting Server...\n")
 
         # TODO: include LiveData plots
-        # process(name="reader", target=LiveData.save_streamed_data, args=(self,))]
         processes = []
+        #processes.append(self.__process(name="reader", target=RunServer.run_live_plot, args=(self,)))
         processes.append(self.__process(name="acquire_emg", target=RunServer.run_sensor_acquisition, args=(self,)))
         processes.append(self.__process(name="process_emg", target=RunServer.run_emg_processing, args=(self,)))
         processes.append(self.__process(name="stream_emg",  target=RunServer.run_streaming, args=(self,)))
