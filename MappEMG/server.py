@@ -55,11 +55,10 @@ class RunServer():
                     raise RuntimeError("Could not create Vicon connection.")
             
             if self.sensorkit == 'pytrigno':
-                try:
-                    sensor_interface = PytrignoClient()
-                    sensor_interface.add_device("Pytrigno", range=(0, self.n_electrode), rate=self.server_acquisition_rate)
-                except:
-                    raise RuntimeError("Could not create Pytrigno connection.")
+                sensor_interface = PytrignoClient()
+                sensor_interface.add_device("Pytrigno", range=(0, self.n_electrode-1), rate=1000) #device smapling rate
+                # except:
+                #     raise RuntimeError("Could not create Pytrigno connection.")
 
                 
 
@@ -95,6 +94,8 @@ class RunServer():
                 
                 if self.sensorkit == 'pytrigno':
                     emg_tmp = sensor_interface.get_device_data(device_name="Pytrigno")[0]
+                    #print(type(emg_tmp))
+                    #print(emg_tmp,"\n\n")
             
             # STEP 1 - Put DICT into Queue IN
             self.__emg_queue_in.put_nowait({"emg_tmp": emg_tmp})
@@ -112,7 +113,7 @@ class RunServer():
         emg_processing.lp_butter_order = 4
         emg_processing.bp_butter_order = 4
 
-        emg_raw = NumpyQueue(max_size=1000, queue=np.array([[],[]]), base_value=0)
+        emg_raw = NumpyQueue(max_size=1000, queue=np.zeros(shape=(self.n_electrode, 1000)), base_value=0)
         
         while True:
             try:
@@ -163,8 +164,16 @@ class RunServer():
             
             if connected:
                 try:
-                    message = server.receive_message(connection)      
-                    server.send_data(data_to_send, connection, message)
+                    message = server.receive_message(connection)
+                    print(message)
+                    if message['command'] == ['emg']:
+                        server.send_data(data_to_send, connection, message)
+                    elif message['command'] == ['close']:
+                        # TODO: Change so it does not send all data, but sends something.
+                        server.send_data(data_to_send, connection, message)
+                        connection.close()
+                    else:
+                        raise ValueError("Unkown message command.")
                 except:
                     connection.close()
                     connected = False
@@ -198,13 +207,13 @@ if __name__ == '__main__':
 
     # Verify which real device they want
     what_device = None
+    bluetooth_address = None
     if with_connection:
         while what_device not in ['bitalino', 'vicon', 'pytrigno']:
             what_device = input("\nWhat device? (bitalino, vicon, or pytrigno): ")
 
         # Read bitalino bluetooth address if there is a connection
         if what_device == 'bitalino':
-            bluetooth_address = None
             if with_connection:
                 print("\nThe macAddress variable on Windows can be \"XX:XX:XX:XX:XX:XX\" or \"COMX\" \n while on Mac OS can be \"/dev/tty.BITalino-XX-XX-DevB\"")
                 # TODO: remove shortcut from main application

@@ -189,8 +189,6 @@ class Server(Connection):
         """
         
         data_to_send = self._prepare_data(message, data)
-        # if self.optim is not True:
-        #     print("Sending data to client...")
         encoded_data = json.dumps(data_to_send).encode()
         encoded_data = struct.pack('>I', len(encoded_data)) + encoded_data
         try:

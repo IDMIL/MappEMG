@@ -28,24 +28,25 @@ class PytrignoClient:
         real_time : bool
             If true device  will be used in real time application
         """
-        new_device = Device(name, type, rate, real_time=real_time)
+        new_device = Device(name, type, rate) #, real_time=real_time)
         new_device.range = range
         self.devices.append(new_device)
-        if type == "emg":
-            self.emg_client = pytrigno.TrignoEMG(
+        # if type == "emg":
+        #
+        self.emg_client = pytrigno.TrignoEMG(
                 channel_range=new_device.range, samples_per_read=new_device.sample, host=self.address
-            )
-            self.emg_client.start()
+        )
+        self.emg_client.start()
 
-        elif new_device.type == "imu":
-            imu_range = (new_device.range[0] * 9, new_device.range[1] * 9)
-            self.imu_client = pytrigno.TrignoIM(
-                channel_range=imu_range, samples_per_read=new_device.sample, host=self.address
-            )
-            self.imu_client.start()
+        # elif new_device.type == "imu":
+        #     imu_range = (new_device.range[0] * 9, new_device.range[1] * 9)
+        #     self.imu_client = pytrigno.TrignoIM(
+        #         channel_range=imu_range, samples_per_read=new_device.sample, host=self.address
+        #     )
+        #     self.imu_client.start()
 
-        else:
-            raise RuntimeError("Device type must be 'emg' or 'imu' with pytrigno.")
+        # else:
+        #     raise RuntimeError("Device type must be 'emg' or 'imu' with pytrigno.")
 
     def get_device_data(self, device_name: str = "all", *args):
         """
