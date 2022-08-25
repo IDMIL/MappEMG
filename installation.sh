@@ -12,9 +12,10 @@ elif [[ "$yn" == "n" ]]; then
     
 fi
 
+echo "test3"
 pip install --upgrade pip #upgrading pip
 
-if [[ "$OSTYPE" == "darwin"* ]]; then # Mac OSX
+if [[ "$OSTYPE" == "darwin"* ]] || [[ "$OSTYPE" == "linux"* ]]; then # Mac OSX and Linux
     source $venv/bin/activate
 
 elif [[ "$OSTYPE" == "msys" ]]; then
@@ -23,9 +24,9 @@ elif [[ "$OSTYPE" == "msys" ]]; then
 
 fi     
 
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 
-python setup.py install
+python3 setup.py install
 
 # elif [[ "$OSTYPE" == "cygwin" ]]; then
 #         # POSIX compatibility layer and Linux environment emulation for Windows
