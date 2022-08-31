@@ -64,13 +64,15 @@ class ComputeMvc:
             self.acquisition_rate = data['system_rate'][0]
 
         else:
+            self.muscle_names = ['a', 'b']
+            self.n_electrodes = 2
             self.frequency = 1000
             self.acquisition_rate = 10
 
         # Set Live Plot parameters
-        self.show_data = False
-        self.try_number = 0
-        self.plot_app, self.rplt, self.layout, self.app, self.box = None, None, None, None, None 
+        # self.show_data = False
+        # self.try_number = 0
+        # self.plot_app, self.rplt, self.layout, self.app, self.box = None, None, None, None, None 
 
         self.first_trial = True
         self.try_name = ""
@@ -91,8 +93,8 @@ class ComputeMvc:
         self.show_data = show_data
         self.try_number = 0
         while True:
-            if show_data:
-                self.rplt, self.layout, self.app, self.box = self._init_live_plot(multi=True)
+            # if show_data:
+            #     self.rplt, self.layout, self.app, self.box = self._init_live_plot(multi=True)
             var, duration = self._init_trial()
             
             # Get data from mvc trial
@@ -204,24 +206,25 @@ class ComputeMvc:
                         client.connect()
                         connected = True
                     if connected:
-                        # Get data streamed from server
-                        if dummy == 0:
-                            a = datetime.datetime.now() # timing check purposes
-                            print("Got data from server at time", a)
-                            dummy = 1
-
-                        client_data= client.get_data(message)
+                        client_data = client.get_data(message)
                         emg = np.array(client_data['emg_proc'])
                         data_tmp = emg
                 else:
-                    data_tmp = np.random.randint(1024, size=(self.nb_muscles, int(self.acquisition_rate)))
+                    data_tmp = np.random.randint(1024, size=(self.n_electrodes, int(self.acquisition_rate)))
                     data_tmp = (data_tmp/(2**10)-0.5)*3.3/1009*1000
+                
+                # Get data streamed from server
+                if dummy == 0:
+                    a = datetime.datetime.now() # timing check purposes
+                    print("Got data from server at time", a)
+                    dummy = 1
+                
                 tic = time()
 
                 data = data_tmp if nb_frame == 0 else np.append(data, data_tmp, axis=1)
                 
-                self._update_live_plot(data, nb_frame)
-                nb_frame += 1
+                # self._update_live_plot(data, nb_frame)
+                nb_frame += self.acquisition_rate
 
                 time_to_sleep = (1 / self.acquisition_rate) - (time() - tic)
 
@@ -231,15 +234,15 @@ class ComputeMvc:
                     print(f"Delay of {abs(time_to_sleep)}.")
 
                 if duration:
-                    if nb_frame == var:
-                        if self.with_connection is True:
-                            print("\nStop acquiring from server...")
-                            b = datetime.datetime.now() # timing check purposes
-                            print("Got data from server at time", b)
-                            c = b - a
-                            print("acquiring data took", c.total_seconds())
-                            print("n of frames: ", nb_frame)
-                        print(data, data.shape)
+                    if nb_frame == int(var):
+                        #if self.with_connection is True:
+                        print("\nStop acquiring from server...")
+                        b = datetime.datetime.now() # timing check purposes
+                        print("Got data from server at time", b)
+                        c = b - a
+                        print("acquiring data took", c.total_seconds())
+                        print("n of frames: ", nb_frame)
+                        print(data.shape)
                         return data
 
             except KeyboardInterrupt:
@@ -285,39 +288,6 @@ class ComputeMvc:
                                     subplot_title=self.muscle_names,
                                     figure_name=self.try_name,
                                     x=x)
-
-
-    def _init_live_plot(self, multi=True):
-        """
-        Initialize the live plot.
-
-        Parameters
-        ----------
-        multi: bool
-            If True, the live plot is initialized for multi-threads plot.
-        Returns
-        -------
-        rplt: list of live plot, layout: qt layout, qt app : pyqtapp, checkbox : list of checkbox
-
-        """
-        self.plot_app = LivePlot()
-        self.plot_app.add_new_plot("EMG", "curve", self.muscle_names)
-        rplt, layout, app, box = self.plot_app.init_plot_window(plot=self.plot_app.plot[0], use_checkbox=True)
-        return rplt, layout, app, box
-
-    def _update_live_plot(self, data, nb_frame):
-        """
-        Update the live plot.
-        Parameters
-        ----------
-        data: numpy.ndarray
-            The EMG data to plot.
-        nb_frame: int
-            The current frame.
-        """
-        if self.plot_app is not None:
-            plot_data = data if nb_frame*self.acquisition_rate < 5*self.frequency else data[:, -5*self.frequency:]
-            self.plot_app.update_plot_window(self.plot_app.plot[0], plot_data, self.app, self.rplt, self.box)
 
     def _save_trial(self):
         """
