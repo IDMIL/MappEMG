@@ -43,10 +43,6 @@ class EMGprocess:
             self.x_emg_smoothed = np.zeros(np.shape(x))
             self.x_emg_scaled = np.zeros(np.shape(x))
             self.input_started = True
-        
-        # np.append(self.prev_values, x)
-        # if len(self.prev_values) > 500:
-        #     self.prev_values = self.prev_values[len(self.prev_values)-100:len(self.prev_values)] # updating prev values to only be the last 100 values
 
     def clip(self):
         '''
@@ -54,15 +50,7 @@ class EMGprocess:
         '''
         self.x_emg_smoothed[self.x_emg_smoothed > 1] = 1
         self.x_emg_smoothed[self.x_emg_smoothed < 0] = 0
-        
-        
-    # @staticmethod
-    # def local_maxima(array):
-    #     try:
-    #         return np.amax(array[100:])
-    #     except ValueError:  # should happen if inputed array is less than 100 values
-    #         return np.amax(array)
-    
+            
     def slide(self, slide_up = 5, slide_down = 5):
 
         for i in range(0,len(self.x_emg)):
@@ -111,15 +99,12 @@ class Mapper:
         self.ymaxf = 127.0
         self.ymaxa = 127.0
     
-    
     def input(self, x):
         """
         Sets inputs to be np array x (shape should be n_channels x n_samples per sec)
         """
         self.inputs = x
 
-    
-    
     def weighted_average(self, weights):
         """
         Takes weight matrix of dim 1 x weights
@@ -134,8 +119,6 @@ class Mapper:
             print('Weight matrix does not match value matrix. Possible mismatch of weights and number of channels used')
             return False
 
-    
-    
     def changeMapping(self, new_points, mapping):
         '''
         Updates the sigmoidal mapping
@@ -160,8 +143,6 @@ class Mapper:
         else: 
              print('Entered mapping does not correspond to either "f" or "a"')
 
-
-
     def addThreshold(self, threshold, mapping):
         '''
         updates threshold values used in mapper
@@ -178,7 +159,6 @@ class Mapper:
         else:
              print('Entered mapping does not correspond to either "f" or "a"')
     
-
     def changeMinY(self, y, mapping):
         '''
         updates minimal y value in the mapping
@@ -211,8 +191,7 @@ class Mapper:
             plt.show()
         else:
             print('Entered mapping does not correspond to either "f" or "a"')
-
-            
+        
     def mapper(self, x, mapping):
         '''
         given a list of points in a function, outputs y value of x 
@@ -253,7 +232,6 @@ class Mapper:
             if x == point[0]:
                 return point[1]
 
-    
     def toFreqAmpl(self,x):
         '''
         takes x and outputs its mapping as a tuple of the form (amplitude,frequency)
@@ -261,7 +239,6 @@ class Mapper:
         f = self.mapper(x,'f')
         a = self.mapper(x,'a')
         return [f/127,a/127] # deviding by 127 for now bcs app gets between 0 and 1
-
 
 class Emitter:
 
@@ -281,5 +258,6 @@ class Emitter:
         """
         :param message: message to send to devices, should be list [freq,amplitude]
         """
+
         for client in self.clients:
             client.send_message('/haptics', message)

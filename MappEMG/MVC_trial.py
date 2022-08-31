@@ -69,11 +69,6 @@ class ComputeMvc:
             self.frequency = 1000
             self.acquisition_rate = 10
 
-        # Set Live Plot parameters
-        # self.show_data = False
-        # self.try_number = 0
-        # self.plot_app, self.rplt, self.layout, self.app, self.box = None, None, None, None, None 
-
         self.first_trial = True
         self.try_name = ""
         self.try_list = []
@@ -93,8 +88,6 @@ class ComputeMvc:
         self.show_data = show_data
         self.try_number = 0
         while True:
-            # if show_data:
-            #     self.rplt, self.layout, self.app, self.box = self._init_live_plot(multi=True)
             var, duration = self._init_trial()
             
             # Get data from mvc trial
@@ -173,12 +166,11 @@ class ComputeMvc:
     def _mvc_trial(self, duration: float, var: float):
         """
         Run the MVC trial.
+
         Parameters
         ----------
         duration : float
             The duration of the trial.
-        nb_frame : int
-            The number of frames of the trial.
         var : float
             The current iteration.
 
@@ -265,8 +257,6 @@ class ComputeMvc:
         ----------
         raw_data : numpy.ndarray
             The raw EMG data of the trial.
-        processed_data : numpy.ndarray
-                The processed EMG data of the trial.
         """
         data = raw_data
         legend = ["Processed MVC trial"]
@@ -337,8 +327,6 @@ if __name__ == "__main__":
         with_connection = input("\nDo MVC with real data from server? (y, or n for random data): ")
     mvc_with_connection = True if with_connection == 'y' else False
 
-    # TODO: Ask for these information before connecting. Right now they are hardcoded.
-    # if mvc_with_connection:
     server_ip = "localhost" if mvc_with_connection else None
     server_port = 5005 if mvc_with_connection else None
 

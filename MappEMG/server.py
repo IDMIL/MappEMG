@@ -1,6 +1,5 @@
 import socket
 import numpy as np
-from time import sleep
 import multiprocessing as mp
 from biosiglive.gui.plot import LivePlot
 from biosiglive.interfaces.pytrigno_interface import PytrignoClient
@@ -12,16 +11,50 @@ from biosiglive.processing.data_processing import OfflineProcessing
 
 class RunServer():
 
-    def __init__(self, with_connection=False, with_plot=False, sensorkit=None, bluetooth_address=None, acq_channels=[]):
+    def __init__(self, with_connection=False,
+                        with_plot=False,
+                        sensorkit=None,
+                        bluetooth_address=None,
+                        acq_channels=[],
+                        device_sampling_rate=1000,
+                        size_processing_window = 100,
+                        server_acquisition_rate = 10,
+                        ):
+        """
+        Run the server.
+
+        Parameters
+        ----------
+        sensorkit : string
+            The name of the sensorkit interface being used: 'bitalino', 'vicon', 'pytrigno', or None.
+        with_connection : bool
+            Determine if the server acquired real data from a sensorkit (True) or not (False).
+        with_plot : bool
+            Determine if the server plots data in real-time (True) or not (False).
+        bluetooth_address : string
+            The macAddress variable to connect the Bitalino sensorkit.
+            On Windows it can be "XX:XX:XX:XX:XX:XX" or "COMX"
+            while on Mac OS can be "/dev/tty.BITalino-XX-XX-DevB")
+        acq_channels : list
+            List of integers containing the channels to which the sensorkits should pull data.
+            For bitalino, it has to be a list of all sensors [0, ..., 6].
+            For pytrigno/vicon, it is a range [0, 16].
+        device_sampling_rate : int
+            Frequency of the device acquiring data. Recommended frequency of 1000 Hz.
+        size_processing_window : int
+            Size of the processing window.
+        server_acquisition_rate : int
+            Number of samples acquired from device per pull.
+        """
         
         self.sensorkit = sensorkit
         self.with_connection = with_connection
         self.with_plot = with_plot
         self.bluetooth_address = bluetooth_address
         self.acq_channels = acq_channels
-        self.device_sampling_rate = 1000
-        self.streaming_rate = 100
-        self.server_acquisition_rate = 10
+        self.device_sampling_rate = device_sampling_rate
+        self.size_processing_window = size_processing_window
+        self.server_acquisition_rate = server_acquisition_rate
         self.n_electrode = len(acq_channels)
 
         manager = mp.Manager()
@@ -134,11 +167,11 @@ class RunServer():
                         raw_plot.update_plot_window(raw_plot.plot[0], raw_queue_to_plot.queue, raw_app, raw_rplt, raw_box)
                     # Processed data live plot
                     if proc_plot is not None:
-                        proc_queue_to_plot.enqueue(np.full((self.n_electrode,1), np.average(emg_proc[:,-self.streaming_rate:])))
+                        proc_queue_to_plot.enqueue(np.full((self.n_electrode,1), np.average(emg_proc[:,-self.size_processing_window:])))
                         proc_plot.update_plot_window(proc_plot.plot[0], proc_queue_to_plot.queue, proc_app, proc_rplt, proc_box)
                 
                 # STEP 3 - Put DICT into Queue OUT
-                self.__emg_queue_out.put({"emg_proc": emg_proc[:,-self.streaming_rate:]}) # Only send n streaming_rate samples
+                self.__emg_queue_out.put({"emg_proc": emg_proc[:,-self.size_processing_window:]}) # Only send n size_processing_window samples
                 # STEP 4 - Set event to let other process know it is ready
                 self.__event_emg.set()
 
@@ -203,7 +236,6 @@ class RunServer():
         for p in processes:
             p.join()
 
-
 if __name__ == '__main__':
 
     # Verify if user wants real device connected
@@ -250,5 +282,13 @@ if __name__ == '__main__':
     with_connection = True if with_connection == 'y' else False
 
     # Run server with information provided
-    local_server = RunServer(with_connection, with_plot, what_device, bluetooth_address, acq_channels)
+    local_server = RunServer(with_connection=with_connection,
+                                with_plot=with_plot,
+                                what_device=what_device,
+                                bluetooth_address=bluetooth_address,
+                                acq_channels=acq_channels,
+                                device_sampling_rate=1000,
+                                size_processing_window=100,
+                                server_acquisition_rate=10
+                                )
     local_server.run()
