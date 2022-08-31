@@ -5,9 +5,9 @@
     />
 </p> -->
 
-![alt text](https://github.com/karlmiko/biosiglive/blob/refactor/MappEMG/MappEmg_pipeline.png?raw=trueg)
+![alt text](https://github.com/karlmiko/biosiglive/blob/main/MappEMG/MappEmg_pipeline.png?raw=trueg)
 
-`MapEMG` allows the audience to experience the performer’s muscle effort, an essential
+`MappEMG` allows the audience to experience the performer’s muscle effort, an essential
 component of music performance which is typically unavailable to direct visual
 observation. The goal is thus to give the listeners access, through haptic vibrations, to an intimate and non-visible dimension of the musicians’ bodily experience.
 
@@ -251,7 +251,7 @@ Enter the port of your device (which you can find at the top of the haptics app 
 >> Attribute weights between 0 and 1 to each sensor (e.g for A1 A2 A3, write 0.45 1 0):
 ```
 Here is a way to visualize what the weights refer to, it is simply a way to compute a weighted mean for each of the acquisition channels:
-![alt text](https://github.com/karlmiko/biosiglive/blob/refactor/MappEMG/emg_weights.png?raw=true)
+![alt text](https://github.com/karlmiko/biosiglive/blob/main/MappEMG/emg_weights.png?raw=true)
 
 Meaning each EMG sensor you have connected can have a weight attributed to it. Weight 1 is 100% of the weight, while 0 is none.
 
