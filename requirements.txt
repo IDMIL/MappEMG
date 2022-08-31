@@ -1,0 +1,10 @@
+scipy==1.8.1
+numpy==1.22.4
+python-osc==1.8.0
+matplotlib==3.5.2
+bitalino==1.2.6
+pandas==1.4.3
+multiprocess==0.70.13
+PyQt5==5.15.7
+pyqtgraph==0.12.4
+# PyQt5 python-osc
