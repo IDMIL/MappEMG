@@ -128,20 +128,25 @@ class RunServer():
         emg_processing.lp_butter_order = 4
         emg_processing.bp_butter_order = 4
 
-        emg_raw = NumpyQueue(max_size=1000, queue=np.zeros(shape=(self.n_electrode, 1000)), base_value=0)
+        emg_raw = NumpyQueue(max_size=self.device_sampling_rate, queue=np.zeros(shape=(self.n_electrode, self.device_sampling_rate)), base_value=0)
 
         if self.with_plot:
+            
+            nb_seconds_plot = 5
+
             # Start Raw EMG Live Plot
             raw_plot = LivePlot()
             raw_plot.add_new_plot("Raw EMG", "curve", [str(c) for c in self.acq_channels])
             raw_rplt, raw_layout, raw_app, raw_box = raw_plot.init_plot_window(plot=raw_plot.plot[0], use_checkbox=True)
-            raw_queue_to_plot = NumpyQueue(max_size=5000, queue=np.zeros((self.n_electrode, 5000)), base_value=0)
+            raw_queue_to_plot = NumpyQueue(max_size=nb_seconds_plot*self.device_sampling_rate,
+                                            queue=np.zeros((self.n_electrode, nb_seconds_plot*self.device_sampling_rate)), base_value=0)
 
             # Start Raw EMG Live Plot
             proc_plot = LivePlot()
             proc_plot.add_new_plot("Proc EMG", "curve", [str(c) for c in self.acq_channels])
             proc_rplt, proc_layout, proc_app, proc_box = proc_plot.init_plot_window(plot=proc_plot.plot[0], use_checkbox=True)
-            proc_queue_to_plot = NumpyQueue(max_size=5000, queue=np.zeros((self.n_electrode, 5000)), base_value=0)
+            proc_queue_to_plot = NumpyQueue(max_size=nb_seconds_plot*self.device_sampling_rate,
+                                            queue=np.zeros((self.n_electrode, nb_seconds_plot*self.device_sampling_rate)), base_value=0)
         
         while True:
             try:
@@ -238,11 +243,12 @@ class RunServer():
 
 if __name__ == '__main__':
 
+    print("\nStarting Server Setup...")
+
     # Verify if user wants real device connected
     with_connection = None
     while with_connection not in ['y', 'n']:
-        with_connection = input(
-            "\nWith device connected? (y, or n for random data): ")
+        with_connection = input("\nWith device connected? (y, or n for random data): ")
     with_connection = True if with_connection == 'y' else False
 
     # Verify which real device they want
@@ -279,12 +285,12 @@ if __name__ == '__main__':
     while with_plot not in ['y', 'n']:
         with_plot = input(
             "\nPlot data in real-time? (y or n): ")
-    with_connection = True if with_connection == 'y' else False
+    with_plot = True if with_plot == 'y' else False
 
     # Run server with information provided
     local_server = RunServer(with_connection=with_connection,
                                 with_plot=with_plot,
-                                what_device=what_device,
+                                sensorkit=what_device,
                                 bluetooth_address=bluetooth_address,
                                 acq_channels=acq_channels,
                                 device_sampling_rate=1000,

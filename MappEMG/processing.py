@@ -4,11 +4,8 @@ Add all mappEMG processing functions here
 
 from cmath import inf
 import numpy as np
-import pandas as pd
-import os
 from pythonosc.udp_client import SimpleUDPClient
 import matplotlib.pyplot as plt
-
 
 class EMGprocess:
 
