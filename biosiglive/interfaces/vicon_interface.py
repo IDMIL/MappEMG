@@ -77,47 +77,6 @@ class ViconClient:
 
         self.devices.append(device_tmp)
 
-    def add_markers(self, name: str = None, rate: int = 100, unlabeled: bool = False, subject_name: str = None):
-        """
-        Add markers set to stream from the Vicon system.
-        Parameters
-        ----------
-        name: str
-            Name of the markers set.
-        rate: int
-            Rate of the markers set.
-        unlabeled: bool
-            Whether the markers set is unlabeled.
-        subject_name: str
-            Name of the subject. If None, the subject will be the first one in Nexus.
-        """
-        markers_tmp = MarkerSet(name, rate, unlabeled)
-        if self.vicon_client:
-            markers_tmp.subject_name = subject_name if subject_name else self.vicon_client.GetSubjectNames()[0]
-            markers_tmp.markers_names = self.vicon_client.GetMarkerNames(markers_tmp.subject_name) if not name else name
-        else:
-            markers_tmp.subject_name = subject_name
-            markers_tmp.markers_names = name
-        self.markers.append(markers_tmp)
-
-    @staticmethod
-    def get_force_plate_data(vicon_client):
-        forceVectorData = []
-        forceplates = vicon_client.GetForcePlates()
-        for plate in forceplates:
-            forceVectorData = vicon_client.GetForceVector(plate)
-            momentVectorData = vicon_client.GetMomentVector(plate)
-            copData = vicon_client.GetCentreOfPressure(plate)
-            globalForceVectorData = vicon_client.GetGlobalForceVector(plate)
-            globalMomentVectorData = vicon_client.GetGlobalMomentVector(plate)
-            globalCopData = vicon_client.GetGlobalCentreOfPressure(plate)
-
-            try:
-                analogData = vicon_client.GetAnalogChannelVoltage(plate)
-            except VDS.DataStreamException as e:
-                print("Failed getting analog channel voltages")
-        return forceVectorData
-
     def get_device_data(self, device_name: Union[str, list] = "all", channel_names: str = None, *args):
         """
         Get the device data from Vicon.
@@ -171,51 +130,6 @@ class ViconClient:
                 count += 1
             all_device_data.append(device_data)
         return all_device_data
-
-    def get_markers_data(self, marker_names: list = None, subject_name: str = None):
-        """
-        Get the markers data from Vicon.
-        Parameters
-        ----------
-        marker_names: list
-            List of markers names.
-        subject_name: str
-            Name of the subject. If None, the subject will be the first one in Nexus.
-
-        Returns
-        -------
-        markers_data: list
-            All asked markers data.
-        """
-        markers_set = []
-        occluded = []
-        all_markers_data = []
-        all_occluded_data = []
-        if subject_name:
-            for s, marker_set in enumerate(self.markers):
-                if marker_set.subject_name == subject_name[s]:
-                    markers_set.append(marker_set)
-        else:
-            markers_set = self.markers
-
-        for markers in markers_set:
-            markers_data = np.zeros((3, len(markers.markers_names), markers.sample))
-            count = 0
-            for m, marker_name in enumerate(markers.markers_names):
-                markers_data_tmp, occluded_tmp = self.vicon_client.GetMarkerGlobalTranslation(
-                    markers.subject_name, marker_name
-                )
-                if marker_names:
-                    if marker_name in marker_names:
-                        markers_data[:, count, :] = markers_data_tmp
-                        occluded.append(occluded_tmp)
-                else:
-                    markers_data[:, count, :] = markers_data_tmp
-                    occluded.append(occluded_tmp)
-                count += 1
-            all_markers_data.append(markers_data)
-            all_occluded_data.append(occluded)
-        return all_markers_data, all_occluded_data
 
     def get_latency(self):
         return self.vicon_client.GetLatencyTotal()

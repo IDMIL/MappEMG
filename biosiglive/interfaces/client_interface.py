@@ -3,9 +3,8 @@ This file is part of biosiglive. It contains a wrapper to use a client more easi
 """
 
 import numpy as np
-from .param import Device, MarkerSet
+from .param import Device
 from ..streaming.client import Client
-from typing import Union
 try:
     from vicon_dssdk import ViconDataStream as VDS
 except ModuleNotFoundError:
@@ -55,28 +54,6 @@ class TcpClient(Client):
         """
         device_tmp = Device(name, type, rate)
         self.devices.append(device_tmp)
-
-    # def add_imu(self, name: str, rate: int = 148.1, from_emg: bool = False):
-    #     self.imu.append(Imu(name, rate, from_emg=from_emg))
-
-    def add_markers(self, name: str = None, rate: int = 100, unlabeled: bool = False, subject_name: str = None):
-        """
-        Add a marker set to the client.
-        Parameters
-        ----------
-        name: str
-            Name of the marker set.
-        rate: int
-            Frequency of the marker set.
-        unlabeled: bool
-            If the marker set is unlabeled.
-        subject_name: str
-            Name of the subject.
-        """
-        markers_tmp = MarkerSet(name, rate, unlabeled)
-        markers_tmp.subject_name = subject_name
-        markers_tmp.markers_names = name
-        self.markers.append(markers_tmp)
 
     def get_data_from_server(self):
         """
@@ -140,31 +117,5 @@ class TcpClient(Client):
             for device in devices:
                 self.data_to_stream.append(device.type)
             return None
-
-    def get_markers_data(self, stream_now: bool = False, get_names: bool = False):
-        """
-        Get the data from the markers.
-
-        Parameters
-        ----------
-        stream_now: bool
-            If the data should be streamed now. if false, the data will be added to the data to stream.
-        get_names: bool
-            If the names of the markers should be returned.
-
-        Returns
-        -------
-        data: list
-            The data asked from the server.
-        """
-        if stream_now:
-            self.client.update_command(name="get_names", value=get_names)
-            self.client.update_command(name="command", value="markers")
-            data = self.client.get_data()
-            return np.array(data["markers"])
-        else:
-            self.data_to_stream.append("markers")
-            return None
-
 
 

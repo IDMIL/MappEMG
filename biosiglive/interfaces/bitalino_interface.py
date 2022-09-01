@@ -14,7 +14,7 @@ class BitalinoClient:
         self.devices = []
         self.client = None
         self.rate = 1000
-        self.system_rate = 50
+        self.system_rate = 10
         self.acq_channels = [0,1,2,3,4,5]
 
 

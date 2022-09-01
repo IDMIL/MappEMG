@@ -3,7 +3,6 @@ This is part of the biosiglive project. It contains the connection class.
 """
 import socket
 import json
-import multiprocessing as mp
 import numpy as np
 import struct
 from typing import Union

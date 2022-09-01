@@ -2,8 +2,6 @@
 This file is part of biosiglive. It contains the Parameter class and introduce the device and markers classes.
 """
 from math import ceil
-from ..processing.data_processing import RealTimeProcessing, OfflineProcessing, GenericProcessing
-
 
 class Type:
     def __init__(self, name: str = None, type: str = None, rate: float = None, system_rate: float = 100, real_time: bool = False):
@@ -31,7 +29,6 @@ class Type:
         self.sample = ceil(rate / self.system_rate)
         self.range = None
         self.process_method = None
-        # self._set_process_method(real_time)
 
     def set_name(self, name: str):
         self.name = name
@@ -62,30 +59,10 @@ class Device(Type):
 
     def add_channel_names(self, channel_names: list):
         """
-        add the channel names to the device
+        Add the channel names to the device
         Parameters
         ----------
         channel_names: list
             list of channel names
         """
         self.channel_names = channel_names
-
-
-# class Imu(Type):
-#     """
-#     This class is used to store the available IMU devices.
-#     """
-#     def __init__(self, name: str = None, rate: float = None, from_emg: bool = False):
-#         type = "imu" if not from_emg else "imu_from_emg"
-#         super().__init__(name, type, rate)
-
-
-class MarkerSet(Type):
-    """
-    This class is used to store the available markers.
-    """
-    def __init__(self, name: str = None, rate: float = None, unlabeled: bool = False):
-        type = "unlabeled" if unlabeled else "labeled"
-        super().__init__(name, type, rate)
-        self.markers_names = name
-        self.subject_name = None

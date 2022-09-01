@@ -7,43 +7,15 @@
 
 ![alt text](https://github.com/karlmiko/biosiglive/blob/main/images/MappEmg_pipeline.png)
 
-`MappEMG` allows the audience to experience the performer’s muscle effort, an essential
-component of music performance which is typically unavailable to direct visual
-observation. The goal is thus to give the listeners access, through haptic vibrations, to an intimate and non-visible dimension of the musicians’ bodily experience.
+`MappEMG` allows the audience to experience the performer's muscle effort, an essential component of music performance typically unavailable for direct visual observation. The goal is thus to give the listeners access, through haptic vibrations, to an intimate and non-visible dimension of the musicians' bodily experience.
 
+There are three steps to get MappEMG up and running:
+First, connect the acquisition device (Bitalino or Delsys) to your local machine. Then, initiate the server, responsible for constantly acquiring data from the sensor device, processing it, and streaming it to either a client or an MVC trial. Finally, initiate a client connection to the server. The client will post-process the EMG data and emit it to the Happtics iOS mobile app.
 
-The project is organized in the following way: 
-Firstly connect your acquisition device to your local machine (can be either Bitalino or Delsys). Then you can run the server which is going to constantly process the data acquired by the sensors and stream it to either a client or an MVC trial. 
-The client side will take care of post-processing the emg data, such as normalization using MVC values, mapping the emg values to haptics, and emit this data to the happtics mobile app.
-
-For more information on the project, check out [this]() paper! NOTE TO FELIPE : is there a paper or references I could link here? I only have pdfs...
+For more information on the project, check out [this](https://nime.pubpub.org/pub/kmn0rbyp/release/1) paper!
 <!-- The processing pipeline is based on [Emg2haptics](https://github.com/Fiverdug/Emg2haptics) maxMSP code, which has been translated into python.  -->
 
-<!-- ## Status
-
-| Type | Status |
-|---|---|
-| License | <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-success" alt="License"/></a> |
-| Continuous integration | [![Build status](https://ci.appveyor.com/api/projects/status/om07r8jhng61qx7y/branch/master?svg=true)](https://ci.appveyor.com/project/pariterre/bioptim/branch/master) |
-| Code coverage | [![codecov](https://codecov.io/gh/pyomeca/bioptim/branch/master/graph/badge.svg?token=NK1V6QE2CK)](https://codecov.io/gh/pyomeca/bioptim) |
-| DOI | [![DOI](https://zenodo.org/badge/251615517.svg)](https://zenodo.org/badge/latestdoi/251615517) |
-
-The current status of `bioptim` on conda-forge is
-
-| Name | Downloads | Version | Platforms | MyBinder |
-| --- | --- | --- | --- | --- |
-| [![Conda Recipe](https://img.shields.io/badge/recipe-bioptim-green.svg)](https://anaconda.org/conda-forge/bioptim) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/bioptim.svg)](https://anaconda.org/conda-forge/bioptim) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/bioptim.svg)](https://anaconda.org/conda-forge/bioptim) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/bioptim.svg)](https://anaconda.org/conda-forge/bioptim) | [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/pyomeca/bioptim-tutorial/HEAD?urlpath=lab) | -->
-
-<!-- # Try bioptim
-Anyone can play with bioptim with a working (but slightly limited in terms of graphics) MyBinder by clicking the following badge
-
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/pyomeca/bioptim-tutorial/HEAD?urlpath=lab)
-
-As a tour guide that uses this binder, you can watch the `bioptim` workshop that we gave at the CMBBE conference on September 2021 by following this link:
-[https://youtu.be/z7fhKoW1y60](https://youtu.be/z7fhKoW1y60) -->
-
 # Table of Contents  
-<!-- [Testing bioptim](#try-bioptim) -->
 
 [How to install](#how-to-install)
  - [The dependencies with Anaconda](#from-conda-forge)
@@ -57,23 +29,8 @@ As a tour guide that uses this binder, you can watch the `bioptim` workshop that
 
 [Citing](#Citing)
 
-        
-<!-- [Examples](#examples)
-- [Run examples](#run-examples)
-- [Getting started](#getting-started)
-- [Muscle driven OCP](#muscle-driven-ocp)
-- [Muscle driven with contact](#muscle-driven-with-contact)
-- [Optimal time OCP](#optimal-time-ocp)
-- [Symmetrical torque driven OCP](#symmetrical-torque-driven-ocp)
-- [Torque driven OCP](#torque-driven-ocp)
-- [Track](#track)
-- [Moving estimation horizon](#moving-estimation-horizon)
-- [Acados](#acados)
- -->
-
-
 # How to install 
-`MapEmg` relies on several dependencies. Here are the installs you should be running to have all the necessary libraries:
+`MappEMG` relies on several dependencies. Here are the installs you should be running to have all the necessary libraries:
 
 ## From Conda Forge
 ```bash
@@ -103,7 +60,7 @@ You can already enjoy MappEMGing!
 
 
 <!-- ### Dependencies
-`MapEmg` relies on several libraries. 
+`MappEmg` relies on several libraries. 
 The most obvious one is the `biorbd` suite (including indeed `biorbd` and `bioviz`), but some extra more are required.
 Due to the amount of different dependencies, it would be tedious to show how to install them all here. 
 The user is therefore invited to read the relevant documentations. 
@@ -260,15 +217,13 @@ That's it! Your devices should start vibrating. If it is not the case you might 
 
 # Citing
 If you use `MappEMG`, we would be grateful if you could cite it as follows:
-NOTE TO FELIPE: this is a copy paste of another readme, let me know how/what you want to cite and I'll change this!
-@article {Bioptim2021,
-	author = {Michaud, Benjamin and Bailly, Fran{\c c}ois and Charbonneau, Eve and Ceglia, Amedeo and Sanchez, L{\'e}a and Begon, Mickael},
-	title = {Bioptim, a Python framework for Musculoskeletal Optimal Control in Biomechanics},
-	elocation-id = {2021.02.27.432868},
-	year = {2021},
-	doi = {10.1101/2021.02.27.432868},
-	publisher = {Cold Spring Harbor Laboratory},
-	URL = {https://www.biorxiv.org/content/10.1101/2021.02.27.432868v1},
-	eprint = {https://www.biorxiv.org/content/10.1101/2021.02.27.432868v1.full.pdf},
-	journal = {bioRxiv}
+
+@inproceedings{Verdugo2022Feeling,
+	author = {Verdugo, Felipe and Ceglia, Amedeo and Frisson, Christian and Burton, Alexandre and Begon, Mickael and Gibet, Sylvie and Wanderley, Marcelo M.},
+	booktitle = {NIME 2022},
+	year = {2022},
+	month = {jun 16},
+	note = {https://nime.pubpub.org/pub/kmn0rbyp},
+	organization = {},
+	title = {Feeling the {Effort} of {Classical} {Musicians} - {A} {Pipeline} from {Electromyography} to {Smartphone} {Vibration} for {Live} {Music} {Performance}},
 }

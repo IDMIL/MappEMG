@@ -36,8 +36,7 @@ class NumpyQueue:
         #pop = self.queue[:,:n_samples]
         self.queue = np.delete(self.queue, range(n_samples), axis=1)
         if self.queue.shape[1] < self.max_size-n_samples:
-            self.queue = np.append(self.queue, np.zeros((self.queue.shape[0], self.max_size-self.queue.shape[1])), axis=1)
-            
+            self.queue = np.append(self.queue, np.zeros((self.queue.shape[0], self.max_size-self.queue.shape[1])), axis=1)            
         #return pop
 
 
