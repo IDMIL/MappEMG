@@ -11,14 +11,16 @@ from biosiglive.processing.data_processing import OfflineProcessing
 
 class RunServer():
 
-    def __init__(self, with_connection=False,
+    def __init__(self, server_ip = 'localhost',
+                        server_port = 5005,
+                        with_connection=False,
                         with_plot=False,
                         sensorkit=None,
                         bluetooth_address=None,
                         acq_channels=[],
                         device_sampling_rate=1000,
                         size_processing_window = 100,
-                        server_acquisition_rate = 10,
+                        server_acquisition_rate = 10
                         ):
         """
         Run the server.
@@ -46,7 +48,9 @@ class RunServer():
         server_acquisition_rate : int
             Number of samples acquired from device per pull.
         """
-        
+
+        self.server_ip=server_ip
+        self.server_port=server_port
         self.sensorkit = sensorkit
         self.with_connection = with_connection
         self.with_plot = with_plot
@@ -140,7 +144,6 @@ class RunServer():
             raw_rplt, raw_layout, raw_app, raw_box = raw_plot.init_plot_window(plot=raw_plot.plot[0], use_checkbox=True)
             raw_queue_to_plot = NumpyQueue(max_size=nb_seconds_plot*self.device_sampling_rate,
                                             queue=np.zeros((self.n_electrode, nb_seconds_plot*self.device_sampling_rate)), base_value=0)
-
             # Start Raw EMG Live Plot
             proc_plot = LivePlot()
             proc_plot.add_new_plot("Proc EMG", "curve", [str(c) for c in self.acq_channels])
@@ -184,7 +187,7 @@ class RunServer():
 
         print("Starting Streaming...")
 
-        server = Server(ip="localhost", port=5005, type='TCP')
+        server = Server(ip=self.server_ip, port=self.server_port, type='TCP')
         server.start()
         connected = False
 
@@ -245,6 +248,22 @@ if __name__ == '__main__':
 
     print("\nStarting Server Setup...")
 
+    # Define server's ip and port
+    server_ip="localhost"
+    server_port=5005
+    # Verify if user wants to change ip or port
+    change_ip_or_port = None
+    while change_ip_or_port != '':
+        print("\nClient will connect to server on IP:'{}' and PORT:'{}'".format(server_ip, server_port))
+        change_ip_or_port = input("\tTo change IP -- Press 1 and 'Enter'\n\tTo change PORT -- Press 2 and 'Enter'\n\tTo continue -- Leave empty and press 'Enter': ")
+        if change_ip_or_port == '1':
+            server_ip = input("New IP address: ")
+        elif change_ip_or_port == '2':
+            try:
+                server_port = int(input("New PORT: "))
+            except:
+                print("Invalid PORT")
+
     # Verify if user wants real device connected
     with_connection = None
     while with_connection not in ['y', 'n']:
@@ -289,6 +308,8 @@ if __name__ == '__main__':
 
     # Run server with information provided
     local_server = RunServer(with_connection=with_connection,
+                                server_ip=server_ip,
+                                server_port=server_port,
                                 with_plot=with_plot,
                                 sensorkit=what_device,
                                 bluetooth_address=bluetooth_address,

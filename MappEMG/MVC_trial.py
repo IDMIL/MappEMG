@@ -5,7 +5,7 @@ This file is part of biosiglive. it is an example to see how to use biosiglive t
 
 from time import strftime, time, sleep
 from biosiglive.processing.data_processing import OfflineProcessing
-from biosiglive.gui.plot import LivePlot, Plot
+from biosiglive.gui.plot import Plot
 import os
 import numpy as np
 import pandas as pd
@@ -214,8 +214,7 @@ class ComputeMvc:
                 tic = time()
 
                 data = data_tmp if nb_frame == 0 else np.append(data, data_tmp, axis=1)
-                
-                # self._update_live_plot(data, nb_frame)
+
                 nb_frame += self.acquisition_rate
 
                 time_to_sleep = (1 / self.acquisition_rate) - (time() - tic)
@@ -227,7 +226,6 @@ class ComputeMvc:
 
                 if duration:
                     if nb_frame == int(var):
-                        #if self.with_connection is True:
                         print("\nStop acquiring from server...")
                         b = datetime.datetime.now() # timing check purposes
                         print("Got data from server at time", b)
@@ -238,14 +236,13 @@ class ComputeMvc:
                         return data
 
             except KeyboardInterrupt:
-                if self.with_connection is True:
-                    print("\nStop acquiring from server...")
-                if self.show_data is True:
-                    self.app.disconnect()
-                    try:
-                        self.app.closeAllWindows()
-                    except RuntimeError:
-                        pass
+                print("\nStop acquiring from server...")
+                b = datetime.datetime.now() # timing check purposes
+                print("Got data from server at time", b)
+                c = b - a
+                print("acquiring data took", c.total_seconds())
+                print("n of frames: ", nb_frame)
+                print(data.shape)
                 return data
 
 
@@ -327,13 +324,28 @@ if __name__ == "__main__":
         with_connection = input("\nDo MVC with real data from server? (y, or n for random data): ")
     mvc_with_connection = True if with_connection == 'y' else False
 
-    server_ip = "localhost" if mvc_with_connection else None
-    server_port = 5005 if mvc_with_connection else None
+    server_ip = None
+    server_port = None
+    if mvc_with_connection:
+        server_ip="localhost"
+        server_port=5005
+        # Verify if user wants to change ip or port
+        change_ip_or_port = None
+        while change_ip_or_port != '':
+            print("\nClient will connect to server on IP:'{}' and PORT:'{}'".format(server_ip, server_port))
+            change_ip_or_port = input("\tTo change IP -- Press 1 and 'Enter'\n\tTo change PORT -- Press 2 and 'Enter'\n\tTo continue -- Leave empty and press 'Enter': ")
+            if change_ip_or_port == '1':
+                server_ip = input("New IP address: ")
+            elif change_ip_or_port == '2':
+                try:
+                    server_port = int(input("New PORT: "))
+                except:
+                    print("Invalid PORT")
 
     MVC = ComputeMvc(
         with_connection=mvc_with_connection,
-        server_ip = server_ip,
-        server_port = server_port
+        server_ip=server_ip,
+        server_port=server_port
     )
     
     list_mvc = MVC.run()

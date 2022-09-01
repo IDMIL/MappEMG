@@ -9,11 +9,20 @@ if __name__ == '__main__':
 
     print("\nClient starting...")
 
-    # Server's host and port
-    input_server_ip = input("\nConnect to host address (leave empty for \"localhost\"): ")
-    server_ip = 'localhost' if input_server_ip == '' else input_server_ip
-    input_server_port = input("\nConnect to host port (leave empty for \"5005\"): ")
-    server_port = 5005 if input_server_port == '' else int(input_server_port)
+    server_ip="localhost"
+    server_port=5005
+    # Verify if user wants to change ip or port
+    change_ip_or_port = None
+    while change_ip_or_port != '':
+        print("\nClient will connect to server on IP:'{}' and PORT:'{}'".format(server_ip, server_port))
+        change_ip_or_port = input("\tTo change IP -- Press 1 and 'Enter'\n\tTo change PORT -- Press 2 and 'Enter'\n\tTo continue -- Leave empty and press 'Enter': ")
+        if change_ip_or_port == '1':
+            server_ip = input("New IP address: ")
+        elif change_ip_or_port == '2':
+            try:
+                server_port = int(input("New PORT: "))
+            except:
+                print("Invalid PORT")
 
     # Get data from server and close connection
     client = Client(server_ip=server_ip, port=server_port)
