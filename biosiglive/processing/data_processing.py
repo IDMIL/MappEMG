@@ -25,7 +25,7 @@ class GenericProcessing:
         self.lpf_lcut = 5
         self.lp_butter_order = 4
         self.bp_butter_order = 4
-        self.ma_win = 200
+        self.ma_win = 100
 
     @staticmethod
     def _butter_bandpass(lowcut, highcut, fs, order=5):

@@ -167,6 +167,8 @@ class RunServer():
 
                 # Process data
                 emg_proc = emg_processing.process_emg(data=emg_raw.queue, frequency=self.device_sampling_rate, ma=True)
+                # Sends the average of the most recent 100 samples processed
+                emg_proc_to_send = np.reshape(np.average(emg_proc[:,-self.size_processing_window:], axis=1), (self.n_electrode,1))
                 
                 if self.with_plot:
                     # Raw data live plot
@@ -175,11 +177,11 @@ class RunServer():
                         raw_plot.update_plot_window(raw_plot.plot[0], raw_queue_to_plot.queue, raw_app, raw_rplt, raw_box)
                     # Processed data live plot
                     if proc_plot is not None:
-                        proc_queue_to_plot.enqueue(np.full((self.n_electrode,1), np.average(emg_proc[:,-self.size_processing_window:])))
+                        proc_queue_to_plot.enqueue(emg_proc_to_send)
                         proc_plot.update_plot_window(proc_plot.plot[0], proc_queue_to_plot.queue, proc_app, proc_rplt, proc_box)
                 
                 # STEP 3 - Put DICT into Queue OUT
-                self.__emg_queue_out.put({"emg_proc": emg_proc[:,-self.size_processing_window:]}) # Only send n size_processing_window samples
+                self.__emg_queue_out.put({"emg_proc": emg_proc_to_send})
                 # STEP 4 - Set event to let other process know it is ready
                 self.__event_emg.set()
 

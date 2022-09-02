@@ -67,7 +67,7 @@ class ComputeMvc:
             self.muscle_names = ['a', 'b']
             self.n_electrodes = 2
             self.frequency = 1000
-            self.acquisition_rate = 10
+            self.acquisition_rate = 1
 
         self.first_trial = True
         self.try_name = ""
@@ -215,7 +215,7 @@ class ComputeMvc:
 
                 data = data_tmp if nb_frame == 0 else np.append(data, data_tmp, axis=1)
 
-                nb_frame += self.acquisition_rate
+                nb_frame += 1 #self.acquisition_rate
 
                 time_to_sleep = (1 / self.acquisition_rate) - (time() - tic)
 
