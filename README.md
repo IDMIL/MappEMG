@@ -36,7 +36,7 @@ source installation.sh
 ```
 You will be prone to say if you already have a virtual environment you would like to use. If you do, press `y` and simply enter its name. If you do not, just press `n` (your new venv will be called `mappemg_venv`)
 
-If you are running into issues or want to install everything yourself, refer to the sub-sections [above](#from-conda-forge)
+If you are running into issues or want to install everything yourself, refer to the sub-sections [below](#from-conda-forge)
 
 ## From Conda Forge
 ```bash
@@ -183,7 +183,7 @@ The questions you will get after are really straightforward, they are there if y
 
 ## Running the client
 
-In order to start processing your EMG data, you should start running a client. To do so, firtly make sure that the server is running. To accomplish that you can refer to [this](#running-the-server) part of the read me.
+In order to start processing your EMG data, you should start running a client. To do so, firstly make sure that the server is running. To accomplish that you can refer to [this](#running-the-server) part of the read me.
 Once the server is running, you should run the `client.py` file, which is under the MappEMG directory. Run it in a new terminal. Note that if you are using VS code you should run it with the "run without debugging" option from the above menu.
 
 Once `client.py` is running, you should answer the questions from the prompt:
