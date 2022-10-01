@@ -10,7 +10,7 @@
 `MappEMG` allows the audience to experience the performer's muscle effort, an essential component of music performance typically unavailable for direct visual observation. The goal is thus to give the listeners access, through haptic vibrations, to an intimate and non-visible dimension of the musicians' bodily experience.
 
 There are three steps to get MappEMG up and running:
-First, connect the acquisition device (Bitalino or Delsys) to your local machine. Then, initiate the server, responsible for constantly acquiring data from the sensor device, processing it, and streaming it to either a client or an MVC trial. Finally, initiate a client connection to the server. The client will post-process the EMG data and emit it to the Happtics iOS mobile app.
+First, connect the acquisition device (Bitalino or Delsys) to your local machine. Then, initiate the server, responsible for constantly acquiring data from the sensor device, processing it, and streaming it to either a client or an MVC trial. Finally, initiate a client connection to the server. The client will post-process the EMG data and emit it to the Happtics IOS mobile app.
 
 For more information on the project, check out [this](https://nime.pubpub.org/pub/kmn0rbyp/release/1) paper!
 <!-- The processing pipeline is based on [Emg2haptics](https://github.com/Fiverdug/Emg2haptics) maxMSP code, which has been translated into python.  -->
@@ -30,7 +30,13 @@ For more information on the project, check out [this](https://nime.pubpub.org/pu
 [Citing](#Citing)
 
 # How to install 
-`MappEMG` relies on several dependencies. Here are the installs you should be running to have all the necessary libraries:
+`MappEMG` relies on several dependencies. If you do not want to install everything seperatly, run the installation script using the command
+```bash
+source installation.sh
+```
+You will be prone to say if you already have a virtual environment you would like to use. If you do, press `y` and simply enter its name. If you do not, just press `n` (your new venv will be called `mappemg_venv`)
+
+If you are running into issues or want to install everything yourself, refer to the sub-sections [below](#from-conda-forge)
 
 ## From Conda Forge
 ```bash
@@ -91,14 +97,23 @@ and optionally:
 
 
 # How to run
-This is a section dedicated to show how to properly run the program. We recommend using VS code as a visual interface as the details to come will be based on it.
+This is a section dedicated on how to properly run the program. There are two parts, running the server in order to acquire data from the device, and running the client to stream data from the server and convert it into haptics.
+For all of these steps, make sure you are in your virtual environment!
 
 ## Running the server
 
 To run the server, simply run the file `server.py` in the MappEMG directory. 
-The best way to do this is via the execute window in the top menu, and click `execute without debugging`.
-You will then have to answer some questions in the prompt which are the following:
+You will then have a little menu that will resemble the following:
 
+``` bash
+Client will connect to server on IP:'localhost' and PORT:'5005'
+        To change IP -- Press 1 and 'Enter'
+        To change PORT -- Press 2 and 'Enter'
+        To continue -- Leave empty and press 'Enter': 
+``` 
+These are the parameters on which you would like to host the server. Follow the instructions if you would like to change the parameters. If you would like to continue press Enter.
+
+The next question is:
 ``` bash
 >> With device connected? (y, or n for random data): 
 ```
@@ -107,17 +122,23 @@ Answer `y` if you would like to connect a device (such as a Bitalino or Delsys),
 ``` bash
 >> Enter list of acquisition channels (e.g. for A1 A2 A3, write 1 2 3): 
 ```
-Answer which acquisition channels you are using on the Bitalino device (you can check at the back of the device next to the port, it is written in small). Reply according to the number of sensors you are using of course.
+Answer which acquisition channels you are using. On the Bitalino device, you can check at the back of the device next to the port, it is written there in small. For Delsys, they correspond to the sensor management menu numbers, not the number of the sensor from the box. 
+Reply according to the number of sensors you are using of course.
 
 ``` bash
->> Enter sampling rate (1, 10, 100, or 1000): 
+>> Plot data in real-time? (y or n): 
 ```
-Answer one of the following options. For Bitalino, 1000Hz is recommended.
+If you would like to plot your data real-time, you can select that option by pressing `y`
+
 
 The prompt should then show:
 
 ``` bash
-Start streaming...
+Starting Server...
+
+Starting EMG Processing...
+Starting Sensor Acquisition...
+Starting Streaming...
 ```
 
 The server is now running and continuously acquiring data
@@ -127,7 +148,7 @@ The server is now running and continuously acquiring data
 
 To run an MVC trial, the server should be running. So if that is not the case, please refer to the section [above](#running-the-server).
 
-To start the trial, while the server is running, run `MVC_trial.py` in the MappEMG directory by going in the above menu -> execute -> execute without debugging. VS code will ask you a question to which you should answer `yes` in order to run both `server.py` and `MVC_trial.py` simultaniously.
+To start the trial, while the server is running, open another terminal and run `MVC_trial.py` in the MappEMG directory. Note that if you are using VS code you should run it with the "run without debugging" option from the above menu.
 
 Once `MVC_trial.py` is running, you should answer the questions from the prompt:
 
@@ -162,20 +183,18 @@ The questions you will get after are really straightforward, they are there if y
 
 ## Running the client
 
-In order to start processing your EMG data, you should start running a client. To do so, firtly make sure that the server is running. To accomplish that you can refer to [this](#running-the-server) part of the read me.
-Once the server is running, you should run the `client.py` file, which is under the MappEMG directory. To run it, you should use the execute menu from the top bar and select menu -> execute -> execute without debugging. You will be prompted to answer `yes` to VScode's question on the screen.
+In order to start processing your EMG data, you should start running a client. To do so, firstly make sure that the server is running. To accomplish that you can refer to [this](#running-the-server) part of the read me.
+Once the server is running, you should run the `client.py` file, which is under the MappEMG directory. Run it in a new terminal. Note that if you are using VS code you should run it with the "run without debugging" option from the above menu.
 
 Once `client.py` is running, you should answer the questions from the prompt:
 
 ``` bash
->> Connect to host address (leave empty for "localhost"): 
+Client will connect to server on IP:'localhost' and PORT:'5005'
+        To change IP -- Press 1 and 'Enter'
+        To change PORT -- Press 2 and 'Enter'
+        To continue -- Leave empty and press 'Enter': 
 ```
-Answer the address on which you are hosting the server, if it is locally, press enter and it will automatically be 'localhost', meaning the IP address 127.0.0.1. If you are hosting the server on a different machine, input that new IP address.
-
-``` bash
->> Connect to host port (leave empty for "5005"): 
-```
-If you are hosting the server locally, press enter and it will automatically set the host port to 5005. If you are hosting on a different machine, enter its port.
+These are the parameters on which you would like to host the client. Follow the instructions if you would like to change those. If you would like to continue press Enter.
 
 ``` bash
 >> Do you want to load real MVC values? ('y' or 'n' for random): 
@@ -214,16 +233,8 @@ Meaning each EMG sensor you have connected can have a weight attributed to it. W
 
 That's it! Your devices should start vibrating. If it is not the case you might have to restart your haptics app and the client!
 
+To stop the client, press `^C` in the terminal in which it is running
+
 
 # Citing
-If you use `MappEMG`, we would be grateful if you could cite it as follows:
-
-@inproceedings{Verdugo2022Feeling,
-	author = {Verdugo, Felipe and Ceglia, Amedeo and Frisson, Christian and Burton, Alexandre and Begon, Mickael and Gibet, Sylvie and Wanderley, Marcelo M.},
-	booktitle = {NIME 2022},
-	year = {2022},
-	month = {jun 16},
-	note = {https://nime.pubpub.org/pub/kmn0rbyp},
-	organization = {},
-	title = {Feeling the {Effort} of {Classical} {Musicians} - {A} {Pipeline} from {Electromyography} to {Smartphone} {Vibration} for {Live} {Music} {Performance}},
-}
+If you use `MappEMG`, we would be grateful if you could cite this paper: https://nime.pubpub.org/pub/kmn0rbyp/release/1?readingCollection=bb45043c

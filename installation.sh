@@ -12,7 +12,7 @@ elif [[ "$yn" == "n" ]]; then
     
 fi
 
-echo "test3"
+#echo "test3"
 pip install --upgrade pip #upgrading pip
 
 if [[ "$OSTYPE" == "darwin"* ]] || [[ "$OSTYPE" == "linux"* ]]; then # Mac OSX and Linux
