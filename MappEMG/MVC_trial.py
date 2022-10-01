@@ -62,12 +62,14 @@ class ComputeMvc:
             self.muscle_names = muscle_names
             self.frequency = data['sampling_rate'][0]
             self.acquisition_rate = data['system_rate'][0]
+            self.effective_rate = self.frequency/self.acquisition_rate
 
         else:
             self.muscle_names = ['a', 'b']
             self.n_electrodes = 2
             self.frequency = 1000
-            self.acquisition_rate = 1
+            self.acquisition_rate = 10
+            self.effective_rate = self.frequency/self.acquisition_rate
 
         self.first_trial = True
         self.try_name = ""
@@ -155,7 +157,7 @@ class ComputeMvc:
         )
         try:
             float(t)
-            iter = float(t) * (self.frequency/self.acquisition_rate)
+            iter = float(t) * (self.effective_rate)
             var = int(iter)
             duration = True
         except ValueError:
@@ -214,10 +216,8 @@ class ComputeMvc:
                 tic = time()
 
                 data = data_tmp if nb_frame == 0 else np.append(data, data_tmp, axis=1)
-
-                nb_frame += 1 #self.acquisition_rate
-
-                time_to_sleep = (1 / self.acquisition_rate) - (time() - tic)
+                nb_frame += 1
+                time_to_sleep = (1 / (self.effective_rate)) - (time() - tic)
 
                 if time_to_sleep > 0:
                     sleep(time_to_sleep)
@@ -265,7 +265,7 @@ class ComputeMvc:
             if plot_comm == "y":
 
                 legend = legend * raw_data.shape[0]
-                x = np.linspace(0, raw_data.shape[1] / self.frequency, raw_data.shape[1])
+                x = np.linspace(0, raw_data.shape[1] / (self.effective_rate), raw_data.shape[1])
                 print("Close the plot windows to continue.")
                 Plot().multi_plot(data,
                                     nb_column=nb_column,
