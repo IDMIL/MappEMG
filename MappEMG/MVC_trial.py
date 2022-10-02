@@ -201,7 +201,7 @@ class ComputeMvc:
                         connected = True
                     if connected:
                         client_data = client.get_data(message)
-                        emg = np.array(client_data['emg_proc'])
+                        emg = np.array(client_data['emg_raw_all'])
                         data_tmp = emg
                 else:
                     data_tmp = np.random.randint(1024, size=(self.n_electrodes, int(self.acquisition_rate)))
@@ -216,8 +216,8 @@ class ComputeMvc:
                 tic = time()
 
                 data = data_tmp if nb_frame == 0 else np.append(data, data_tmp, axis=1)
-                nb_frame += 1
-                time_to_sleep = (1 / (self.effective_rate)) - (time() - tic)
+                nb_frame += self.acquisition_rate
+                time_to_sleep = (1 / (self.acquisition_rate)) - (time() - tic)
 
                 if time_to_sleep > 0:
                     sleep(time_to_sleep)
@@ -265,7 +265,7 @@ class ComputeMvc:
             if plot_comm == "y":
 
                 legend = legend * raw_data.shape[0]
-                x = np.linspace(0, raw_data.shape[1] / (self.effective_rate), raw_data.shape[1])
+                x = np.linspace(0, raw_data.shape[1] / (self.acquisition_rate), raw_data.shape[1])
                 print("Close the plot windows to continue.")
                 Plot().multi_plot(data,
                                     nb_column=nb_column,

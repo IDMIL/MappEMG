@@ -125,7 +125,7 @@ if __name__ == '__main__':
             
             data = client.get_data(message)
             emg = np.array(data["emg_proc"])
-            print(emg)
+            print(data)
 
             # Post processing data to be emitted
             perc_mvc = generic_processing.normalize_emg(emg, list_mvc)

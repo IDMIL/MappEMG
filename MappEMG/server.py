@@ -181,7 +181,7 @@ class RunServer():
                         proc_plot.update_plot_window(proc_plot.plot[0], proc_queue_to_plot.queue, proc_app, proc_rplt, proc_box)
                 
                 # STEP 3 - Put DICT into Queue OUT
-                self.__emg_queue_out.put({"emg_proc": emg_proc_to_send})
+                self.__emg_queue_out.put({"emg_proc": emg_proc_to_send, "emg_raw_all": emg_tmp})
                 # STEP 4 - Set event to let other process know it is ready
                 self.__event_emg.set()
 
@@ -208,9 +208,9 @@ class RunServer():
             data = self.__emg_queue_out.get_nowait()
             # STEP 7 - Release lock
             self.__event_emg.clear()
-            #print("Step -- 7")
             data_to_send = {}
             data_to_send["emg_proc"] = data["emg_proc"]
+            data_to_send["emg_raw_all"] = data["emg_raw_all"]
             data_to_send["n_electrode"] = self.n_electrode
             data_to_send["sampling_rate"] = self.device_sampling_rate
             data_to_send["system_rate"] = self.server_acquisition_rate
@@ -218,7 +218,6 @@ class RunServer():
             if connected:
                 try:
                     message = server.receive_message(connection)
-                    print(message)
                     if message['command'] == ['emg']:
                         server.send_data(data_to_send, connection, message)
                     elif message['command'] == ['close']:

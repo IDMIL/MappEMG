@@ -79,6 +79,7 @@ class Connection:
 
         try:
             data_to_prepare["emg_proc"] = data["emg_proc"]
+            data_to_prepare["emg_raw_all"] = data["emg_raw_all"]
             data_to_prepare["sampling_rate"] = data["sampling_rate"] 
             data_to_prepare["system_rate"] = data["system_rate"]
             data_to_prepare["n_electrode"] = data["n_electrode"]
@@ -108,8 +109,10 @@ class Connection:
         for key in data.keys():
             if isinstance(data[key], int):
                 data[key] = [data[key]]
-            elif len(data[key].shape) == 2:
+            elif key == "emg_proc":
                 data[key] = data[key][:, :nb_frames_to_get].tolist()
+            elif key == "emg_raw_all":
+                data[key] = data[key].tolist()
 
         return data
 
