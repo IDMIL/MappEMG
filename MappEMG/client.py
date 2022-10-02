@@ -125,7 +125,6 @@ if __name__ == '__main__':
             
             data = client.get_data(message)
             emg = np.array(data["emg_proc"])
-            print(data)
 
             # Post processing data to be emitted
             perc_mvc = generic_processing.normalize_emg(emg, list_mvc)
@@ -133,6 +132,8 @@ if __name__ == '__main__':
             post_processor.slide() # smoothing the data
             post_processor.clip() # clipping data in case it is not between 0 and 1
             data_tmp = post_processor.scale(1) # for now scaling to 1 as it's random data
+
+            print(data_tmp)
 
             if emit:
 

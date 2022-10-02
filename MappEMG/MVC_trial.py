@@ -34,6 +34,8 @@ class ComputeMvc:
         with_connection : bool
             If True, the program will try to connect to the device.
         """
+        self.processing = OfflineProcessing()
+
         # Set MVC output file name
         current_time = strftime("%Y%m%d-%H%M")
         self.output_file = f"_{current_time}.csv" if not output_file else output_file
@@ -255,17 +257,18 @@ class ComputeMvc:
         raw_data : numpy.ndarray
             The raw EMG data of the trial.
         """
-        data = raw_data
-        legend = ["Processed MVC trial"]
+        processed_data = self.processing.process_emg(data=raw_data, frequency=self.frequency, ma=True)
+        data = [raw_data, processed_data]
         nb_column = 4 if raw_data.shape[0] > 4 else raw_data.shape[0]
         plot_comm = "y"
         print(f"Trial {self.try_name} terminated. ")
         while plot_comm != "n":
             plot_comm = input(f"Would you like to plot your trial ? 'y'/'n'")
             if plot_comm == "y":
-
+#                data = [raw_data, processed_data]
+                legend = ["Raw", "Processed"]
                 legend = legend * raw_data.shape[0]
-                x = np.linspace(0, raw_data.shape[1] / (self.acquisition_rate), raw_data.shape[1])
+                x = np.linspace(0, raw_data.shape[1] / (self.effective_rate), raw_data.shape[1])
                 print("Close the plot windows to continue.")
                 Plot().multi_plot(data,
                                     nb_column=nb_column,
@@ -274,7 +277,7 @@ class ComputeMvc:
                                     legend=legend,
                                     subplot_title=self.muscle_names,
                                     figure_name=self.try_name,
-                                    x=x)
+                                    x=x)                    
 
     def _save_trial(self):
         """
@@ -297,7 +300,10 @@ class ComputeMvc:
         df.drop('trial_name', axis=1, inplace=True)
         mvc_trials = df.to_numpy().T # All the trials from tmp file
 
-        mvc = OfflineProcessing.compute_mvc(mvc_trials)
+        # Process all MVC trials
+        processed_mvc_trials = self.processing.process_emg(data=mvc_trials, frequency=self.frequency, ma=True)
+        mvc = OfflineProcessing.compute_mvc(processed_mvc_trials)
+        
         # Save MVC
         mvc_resh = np.reshape(mvc, (1, len(mvc))) # reshape to properly save DataFrame
         df_mvc = pd.DataFrame(mvc_resh, columns = self.muscle_names)
