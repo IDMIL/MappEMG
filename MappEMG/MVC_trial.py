@@ -327,7 +327,7 @@ if __name__ == "__main__":
     # Ask if the data will come from the server of ir random
     with_connection = None
     while with_connection not in ['y', 'n']:
-        with_connection = input("\nDo MVC with real data from server? (y, or n for random data): ")
+        with_connection = input("\nDo MVC with data from server? (y, or n for random data): ")
     mvc_with_connection = True if with_connection == 'y' else False
 
     server_ip = None

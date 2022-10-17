@@ -51,7 +51,7 @@ if __name__ == '__main__':
     emit = True
     n_devices = None
     while not isinstance(n_devices, int):
-        n_devices = input('\nHow many devices with the haptics app would you like to connect? ')
+        n_devices = input('\nHow many devices with the hAPPtiks app would you like to connect? ')
         try:
             n_devices = int(n_devices)
             if n_devices < 0:
@@ -93,7 +93,7 @@ if __name__ == '__main__':
                     weights_raw = [float(w) for w in weights_raw]
                     if (len(weights_raw) != n_electrode or not (all(float(w) <= 1 for w in weights_raw))):
                         print("\nNumber of weights does not correspond to number of channels or values are not between 0 and 1...")
-                        weights_raw = input("\nAttribute weights between 0 and 1 to each sensor (e.g for A1 A2 A3, write 0.45 1 0): ").split(" ")
+                        weights_raw = input("\nAttribute weights between 0 and 1 to each sensor (e.g for A1 A2 A3 A4, tou can write 1 0.45 1 0.80): ").split(" ")
                     else:
                         break
                 except ValueError:
@@ -133,7 +133,7 @@ if __name__ == '__main__':
             post_processor.clip() # clipping data in case it is not between 0 and 1
             data_tmp = post_processor.scale(1) # for now scaling to 1 as it's random data
 
-            print(data_tmp)
+            #print(data_tmp)
 
             if emit:
 
