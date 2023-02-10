@@ -10,6 +10,7 @@ import os
 import numpy as np
 import pandas as pd
 import datetime
+import matplotlib.pyplot as plt
 
 from biosiglive.streaming.client import Client, Message
 
@@ -159,7 +160,7 @@ class ComputeMvc:
         )
         try:
             float(t)
-            iter = float(t) * (self.effective_rate)
+            iter = float(t) * (self.frequency)
             var = int(iter)
             duration = True
         except ValueError:
@@ -220,7 +221,6 @@ class ComputeMvc:
                 data = data_tmp if nb_frame == 0 else np.append(data, data_tmp, axis=1)
                 nb_frame += self.acquisition_rate
                 time_to_sleep = (1 / (self.acquisition_rate)) - (time() - tic)
-
                 if time_to_sleep > 0:
                     sleep(time_to_sleep)
                 else:
@@ -239,7 +239,7 @@ class ComputeMvc:
 
             except KeyboardInterrupt:
                 print("\nStop acquiring from server...")
-                b = datetime.datetime.now() # timing check purposes
+                b = datetime.datetime.now() # timing checenenk purposes
                 print("Got data from server at time", b)
                 c = b - a
                 print("acquiring data took", c.total_seconds())
@@ -277,7 +277,10 @@ class ComputeMvc:
                                     legend=legend,
                                     subplot_title=self.muscle_names,
                                     figure_name=self.try_name,
-                                    x=x)                    
+                                    x=x)
+                # x = np.linspace(0, raw_data.shape[1])
+                # plt.plot(raw_data[0])
+                # plt.show()
 
     def _save_trial(self):
         """

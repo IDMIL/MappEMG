@@ -73,6 +73,7 @@ class PytrignoClient:
             else:
                 raise RuntimeError(f"Device type ({device.type}) not supported with pytrigno.")
             all_device_data.append(device_data)
+
         return all_device_data
 
     def get_markers_data(self, marker_names: list = None, subject_name: str = None):

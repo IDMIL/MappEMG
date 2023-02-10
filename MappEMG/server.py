@@ -1,6 +1,7 @@
 import socket
 import numpy as np
 import multiprocessing as mp
+from biosiglive.gui.plot import Plot
 from biosiglive.gui.plot import LivePlot
 from biosiglive.interfaces.pytrigno_interface import PytrignoClient
 from biosiglive.interfaces.vicon_interface import ViconClient
@@ -8,6 +9,7 @@ from biosiglive.processing.utils import NumpyQueue
 from biosiglive.streaming.connection import Server
 from biosiglive.interfaces.bitalino_interface import BitalinoClient
 from biosiglive.processing.data_processing import OfflineProcessing
+import matplotlib.pyplot as plt
 
 class RunServer():
 
@@ -67,6 +69,33 @@ class RunServer():
         self.__event_emg = mp.Event()
         self.__process = mp.Process
 
+    def _plot_trial(self, raw_data, proc_data):
+        """
+        Plot the trial.
+
+        Parameters
+        ----------
+        raw_data : numpy.ndarray
+            The raw EMG data of the trial.
+        """
+        # processed_data = self.processing.process_emg(data=raw_data, frequency=self.frequency, ma=True)
+        nb_column = 1
+        plot_comm = "y"
+
+        frequency = 1000
+        acquisition_rate = 10
+        effective_rate = frequency / acquisition_rate
+
+        legend = ["Raw"]
+        x = np.linspace(0, len(raw_data)/ (effective_rate), len(raw_data))
+        # x = np.linspace(0, len(proc_data) / (effective_rate), len(proc_data))
+        print("Close the plot windows to continue.")
+        plt.plot(x, raw_data)
+        # plt.plot(x, proc_data)
+
+        plt.show()
+
+
     def run_sensor_acquisition(self):
 
         print("Starting Sensor Acquisition...")
@@ -106,17 +135,17 @@ class RunServer():
                 emg_tmp = np.random.randint(1024, size=(self.n_electrode, self.server_acquisition_rate)) # data range [0.0, 1024)
                 emg_tmp = (emg_tmp/(2**10)-0.5)*3.3/1009*1000
             else:
-                if self.sensorkit == 'bitalino':       
+                if self.sensorkit == 'bitalino':
                     emg_tmp = sensor_interface.get_device_data(device_name="Bitalino")[0]
                     emg_tmp = (emg_tmp/(2**10)-0.5)*3.3/1009*1000  # convert to mV
-                
+
                 if self.sensorkit == 'vicon':
                     sensor_interface.get_frame()
                     emg_tmp = sensor_interface.get_device_data(device_name="Vicon")[0]
-                
+
                 if self.sensorkit == 'pytrigno':
                     emg_tmp = sensor_interface.get_device_data(device_name="Pytrigno")[0]
-            
+
             # STEP 1 - Put DICT into Queue IN
             self.__emg_queue_in.put_nowait({"emg_tmp": emg_tmp})
 
@@ -150,7 +179,7 @@ class RunServer():
             proc_rplt, proc_layout, proc_app, proc_box = proc_plot.init_plot_window(plot=proc_plot.plot[0], use_checkbox=True)
             proc_queue_to_plot = NumpyQueue(max_size=nb_seconds_plot*self.device_sampling_rate,
                                             queue=np.zeros((self.n_electrode, nb_seconds_plot*self.device_sampling_rate)), base_value=0)
-        
+
         while True:
             try:
                 # STEP 2 - Take DICT from Queue IN
@@ -169,7 +198,7 @@ class RunServer():
                 emg_proc = emg_processing.process_emg(data=emg_raw.queue, frequency=self.device_sampling_rate, ma=True)
                 # Sends the average of the most recent 100 samples processed
                 emg_proc_to_send = np.reshape(np.average(emg_proc[:,-self.size_processing_window:], axis=1), (self.n_electrode,1))
-                
+
                 if self.with_plot:
                     # Raw data live plot
                     if raw_plot is not None:
@@ -179,7 +208,7 @@ class RunServer():
                     if proc_plot is not None:
                         proc_queue_to_plot.enqueue(emg_proc_to_send)
                         proc_plot.update_plot_window(proc_plot.plot[0], proc_queue_to_plot.queue, proc_app, proc_rplt, proc_box)
-                
+
                 # STEP 3 - Put DICT into Queue OUT
                 self.__emg_queue_out.put({"emg_proc": emg_proc_to_send, "emg_raw_all": emg_tmp})
                 # STEP 4 - Set event to let other process know it is ready
@@ -193,17 +222,23 @@ class RunServer():
         server.start()
         connected = False
 
+        datanum_raw1 = 0
+        datanum_proc1 = 0
+        emg_raw_test = []
+        emg_pro_test = []
+
         while True:
-            
+
             if not connected:
-                try: 
+                try:
                     connection = server.client_listening()
                     connected = True
                 except socket.timeout:
                     pass
-            
+
             # STEP 5 - Wait for event
             self.__event_emg.wait()
+
             # STEP 6 - Take DICT from Queue OUT
             data = self.__emg_queue_out.get_nowait()
             # STEP 7 - Release lock
@@ -214,10 +249,11 @@ class RunServer():
             data_to_send["n_electrode"] = self.n_electrode
             data_to_send["sampling_rate"] = self.device_sampling_rate
             data_to_send["system_rate"] = self.server_acquisition_rate
-            
+
             if connected:
                 try:
                     message = server.receive_message(connection)
+                    print("connected, data ", sum(data_to_send["emg_proc"])/len(data_to_send["emg_proc"][0]))
                     if message['command'] == ['emg']:
                         server.send_data(data_to_send, connection, message)
                     elif message['command'] == ['close']:
@@ -317,6 +353,6 @@ if __name__ == '__main__':
                                 acq_channels=acq_channels,
                                 device_sampling_rate=1000, # you can change the device sampling rate here
                                 size_processing_window=100,
-                                server_acquisition_rate=10
+                                server_acquisition_rate=100
                                 )
     local_server.run()

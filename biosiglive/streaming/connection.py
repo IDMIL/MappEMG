@@ -1,3 +1,4 @@
+
 """
 This is part of the biosiglive project. It contains the connection class.
 """
@@ -49,7 +50,7 @@ class Connection:
             The data prepared to be sent.
 
         """
-        
+
         nb_frames_to_get = message["nb_frames_to_get"] if message["nb_frames_to_get"] else 1
 
         data_to_prepare = self.__data_to_prepare(data)
@@ -80,7 +81,7 @@ class Connection:
         try:
             data_to_prepare["emg_proc"] = data["emg_proc"]
             data_to_prepare["emg_raw_all"] = data["emg_raw_all"]
-            data_to_prepare["sampling_rate"] = data["sampling_rate"] 
+            data_to_prepare["sampling_rate"] = data["sampling_rate"]
             data_to_prepare["system_rate"] = data["system_rate"]
             data_to_prepare["n_electrode"] = data["n_electrode"]
         except:
@@ -105,7 +106,7 @@ class Connection:
         data : dict
             The data checked and adjusted.
         """
-    
+
         for key in data.keys():
             if isinstance(data[key], int):
                 data[key] = [data[key]]
@@ -189,13 +190,12 @@ class Server(Connection):
         connection : socket.socket
             The connection to send the data to.
         """
-        
+
         data_to_send = self._prepare_data(message, data)
         encoded_data = json.dumps(data_to_send).encode()
         encoded_data = struct.pack('>I', len(encoded_data)) + encoded_data
         try:
             connection.sendall(encoded_data)
-            print(f"data sent: {data_to_send}")
         except ConnectionError:
             pass
 

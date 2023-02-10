@@ -133,7 +133,7 @@ if __name__ == '__main__':
             post_processor.clip() # clipping data in case it is not between 0 and 1
             data_tmp = post_processor.scale(1) # for now scaling to 1 as it's random data
 
-            #print(data_tmp)
+            print(data_tmp)
 
             if emit:
 
