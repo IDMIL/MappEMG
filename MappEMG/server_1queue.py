@@ -159,11 +159,10 @@ class RunServer():
                     emg_tmp = sensor_interface.get_device_data(device_name="Pytrigno")[0]
 
             # STEP 1 - Put DICT into Queue IN
+            if not self.__emg_queue_in.empty():
+                self.__emg_queue_in.get()  # as docs say: Remove and return an item from the queue.
+
             self.__emg_queue_in.put_nowait({"emg_tmp": emg_tmp})
-
-
-            emg_raw_pt = emg_tmp[0][0]
-            # print("acqui, data ", format(emg_raw_pt, '.4f'))
 
     def run_emg_processing(self):
 
@@ -196,7 +195,6 @@ class RunServer():
             try:
                 connection = server.client_listening()
                 connected = True
-                print("streaming self.connected", connected)
             except socket.timeout:
                 pass
 
@@ -224,15 +222,11 @@ class RunServer():
 
                 # If connected, process and send data to client
                 if connected:
-                    emg_raw_pt =emg_tmp[0][0]
-                    # print("preprocess, data ", format(emg_raw_pt, '.4f'))
 
                     try:
                         message = server.receive_message(connection)
                         if message['command'] == ['emg']:
                             server.send_data(data_to_send, connection, message)
-                            emg_raw_pt = emg_raw.queue[0][0]
-                            # print("send, data ", format(emg_raw_pt, '.4f'))
                         elif message['command'] == ['close']:
                             # TODO: Change so it does not send all data, but sends something.
                             server.send_data(data_to_send, connection, message)
