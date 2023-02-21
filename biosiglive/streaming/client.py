@@ -118,7 +118,6 @@ class Client:
         data: list
             List of data received.
         """
-
         msg_len = self.client.recv(4)
         msg_len = struct.unpack('>I', msg_len)[0]
         data = []

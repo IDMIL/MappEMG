@@ -273,7 +273,7 @@ class ComputeMvc:
                 Plot().multi_plot(data,
                                     nb_column=nb_column,
                                     y_label="Activation level (mV)",
-                                    x_label="Time (s)",
+                                    x_label="Time (ms)",
                                     legend=legend,
                                     subplot_title=self.muscle_names,
                                     figure_name=self.try_name,
@@ -306,11 +306,14 @@ class ComputeMvc:
         # Process all MVC trials
         processed_mvc_trials = self.processing.process_emg(data=mvc_trials, frequency=self.frequency, ma=True)
         mvc = OfflineProcessing.compute_mvc(processed_mvc_trials)
-        
+
         # Save MVC
         mvc_resh = np.reshape(mvc, (1, len(mvc))) # reshape to properly save DataFrame
+
         df_mvc = pd.DataFrame(mvc_resh, columns = self.muscle_names)
-        df_mvc.to_csv("MVC{}".format(self.output_file), index=False, header=True)
+        df_mvc.insert(0, 'trial_index', list(range(0, df_mvc.shape[1])))
+        df_mvc.insert(0, 'trial_name', self.try_name)
+        df_mvc.to_csv("MVC{}".format(self.output_file), mode='a', index=False, header=True)
 
         return mvc
 

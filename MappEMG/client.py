@@ -46,6 +46,7 @@ if __name__ == '__main__':
         mvc_file = input("\nInput name of the MVC .csv file (for example \"MVC_20220707-1915.csv\"): ")
         list_mvc = pd.read_csv(mvc_file)           # Open .csv file
         list_mvc = list_mvc.to_numpy().T.tolist()  # Get MVC in the proper shape
+        list_mvc = list_mvc[2]
 
     # Asking user if they want to send haptics to phone
     emit = True
@@ -80,7 +81,7 @@ if __name__ == '__main__':
 
         # Initializing mapper
         mapper = Mapper(n_electrode, system_rate)
-        mapping = [0.5,0.5]
+        mapping = [0.5, 0.5]
 
         # Initializing weights
         boo = True # keeps track that all values can be cast to float, basically serves as a while true loop
@@ -113,7 +114,7 @@ if __name__ == '__main__':
 
     # Create a client to get data from server
     client = Client(server_ip=server_ip, port=server_port)
-    message = Message(command=['emg'], nb_frame_to_get=1)
+    message = Message(command=['emg'], nb_frame_to_get=system_rate)
 
     connected = False
     while True:
@@ -133,7 +134,7 @@ if __name__ == '__main__':
             post_processor.clip() # clipping data in case it is not between 0 and 1
             data_tmp = post_processor.scale(1) # for now scaling to 1 as it's random data
 
-            print(data_tmp)
+            # print(data_tmp)
 
             if emit:
 
@@ -143,10 +144,11 @@ if __name__ == '__main__':
 
                 for w in weighted_avr[0]:
                     try:
-                        mapping = mapper.toFreqAmpl(w)
-                        emitter.sendMessage(mapping)
+                        mapping_hap = mapper.toFreqAmpl(w)
+                        mapping_col = mapper.toRgbBri(w)
+                        emitter.sendMessage(mapping_hap) #, mapping_col)
                         sleep(0.5)
                     except TypeError:
                         print("ERROR with toFreqAmpl...")
-                        emitter.sendMessage(mapping)
+                        emitter.sendMessage(mapping_hap) #, mapping_col)
                         sleep(0.5)

@@ -86,11 +86,13 @@ class Mapper:
         """
         self.amplitude_points = [(0, 0), (0.077, 3.683), (0.159, 11.049), (0.714, 107.315),(0.795, 117.094), (0.868, 121.793), (0.945, 125.222), (1, 127)]
         self.frequency_points = [(0, 10.414), (0.032, 18.54199999), (0.082, 27.178), (0.155, 35.814), (0.985, 105.664)]
+        self.bright_points = [(0, 10.414), (0.032, 18.54199999), (0.082, 27.178), (0.155, 35.814), (0.985, 105.664)]
         self.n = n_channels
         self.inputs = np.zeros((n_channels,samples_per_sec))
         self.weighted_emgs = 0.0
         self.freqthreshold = 0.0
         self.amplthreshold = 0.0
+        self.brighthreshold = 0.0
         self.yminf = 0.0
         self.ymina = 0.0
         self.ymaxf = 127.0
@@ -207,6 +209,10 @@ class Mapper:
             points = self.amplitude_points
             threshold = self.amplthreshold
             ymin = self.ymina
+        elif mapping == 'b':
+            points = self.bright_points
+            threshold = self.brighthreshold
+            ymin = self.ymina
         else:
              print('Entered mapping does not correspond to either "f" or "a"')
              return -inf
@@ -231,11 +237,24 @@ class Mapper:
 
     def toFreqAmpl(self,x):
         '''
-        takes x and outputs its mapping as a tuple of the form (amplitude,frequency)
+        takes x and outputs its mapping as a tuple of the form
+        (amplitude,frequency)
         '''
         f = self.mapper(x,'f')
         a = self.mapper(x,'a')
-        return [f/127,a/127] # deviding by 127 for now bcs app gets between 0 and 1
+        return [f/127, a/127] # deviding by 127 for now bcs app gets between 0 and 1
+
+    def toRgbBri(self,x):
+        '''
+        takes x and outputs its mapping as a tuple of the form
+        (R, G, B, brightness)
+        '''
+        R = 75
+        G = 75
+        B = 75
+        b = self.mapper(x,'b')
+        return [R, G, B, b/127] # deviding by 127 for now bcs app gets between 0 and 1
+
 
 class Emitter:
 
@@ -251,10 +270,13 @@ class Emitter:
 
         self.clients.append(SimpleUDPClient(ip, port))
 
-    def sendMessage(self, message):
+    def sendMessage(self, message_hap): #, message_col):
         """
         :param message: message to send to devices, should be list [freq,amplitude]
+
+        message 1
         """
 
         for client in self.clients:
-            client.send_message('/haptics', message)
+            client.send_message('/haptics', message_hap)
+            # client.send_message('/couleur', message_col)
