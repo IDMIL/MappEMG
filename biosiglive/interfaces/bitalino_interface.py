@@ -23,7 +23,7 @@ class BitalinoClient:
         """
         Add a device to the Bitalino client.
         Parameters
-        ----------
+        ----------1
         name : str
             Name of the device.
         rate : float
