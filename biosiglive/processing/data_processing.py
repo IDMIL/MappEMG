@@ -416,7 +416,7 @@ class OfflineProcessing(GenericProcessing):
             MVC for each muscle.
 
         """
-        
+
         for i in range(nb_muscles):
             mvc_temp = -np.sort(-mvc_trials, axis=1)
             if i == 0:
@@ -447,7 +447,7 @@ class OfflineProcessing(GenericProcessing):
         ----------
         mvc_trials : numpy.ndarray
             concatenated and processed EMG data
-            from all trials in the shape (n_muscles, total_samples).    
+            from all trials in the shape (n_muscles, total_samples).
             e.g. trial "x" with 2 muscles A and B has shape (2, 10)
                  trial "y" with 2 muscles A and B has shape (2, 20)
             mvc_trials will be concatenate x, y to result in shape (2, 30)
