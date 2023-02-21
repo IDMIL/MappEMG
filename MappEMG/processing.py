@@ -270,7 +270,7 @@ class Emitter:
 
         self.clients.append(SimpleUDPClient(ip, port))
 
-    def sendMessage(self, message_hap): #, message_col):
+    def sendMessage(self, message_hap, message_col):
         """
         :param message: message to send to devices, should be list [freq,amplitude]
 
@@ -279,4 +279,4 @@ class Emitter:
 
         for client in self.clients:
             client.send_message('/haptics', message_hap)
-            # client.send_message('/couleur', message_col)
+            client.send_message('/couleur', message_col)

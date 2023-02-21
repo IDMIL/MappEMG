@@ -146,9 +146,9 @@ if __name__ == '__main__':
                     try:
                         mapping_hap = mapper.toFreqAmpl(w)
                         mapping_col = mapper.toRgbBri(w)
-                        emitter.sendMessage(mapping_hap) #, mapping_col)
+                        emitter.sendMessage(mapping_hap, mapping_col)
                         sleep(0.5)
                     except TypeError:
                         print("ERROR with toFreqAmpl...")
-                        emitter.sendMessage(mapping_hap) #, mapping_col)
+                        emitter.sendMessage(mapping_hap, mapping_col)
                         sleep(0.5)
