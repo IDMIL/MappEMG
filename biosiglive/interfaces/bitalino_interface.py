@@ -94,10 +94,11 @@ class BitalinoClient:
                 device_data = np.array(self.client.read(nSamples=device.system_rate), dtype=float)
                 device_data = np.delete(device_data, [0, 1, 2, 3, 4], 1)
                 device_data = device_data.T
+                all_device_data.append(device_data)
 
             except:
                 raise RuntimeError("Error in getting data from bitalino device.")
 
-            all_device_data.append(device_data)
+
         
         return all_device_data

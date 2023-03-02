@@ -46,7 +46,7 @@ if __name__ == '__main__':
         mvc_file = input("\nInput name of the MVC .csv file (for example \"MVC_20220707-1915.csv\"): ")
         list_mvc = pd.read_csv(mvc_file)           # Open .csv file
         list_mvc = list_mvc.to_numpy().T.tolist()  # Get MVC in the proper shape
-        list_mvc = list_mvc[2]
+        list_mvc = list_mvc[2:]
 
     # Asking user if they want to send haptics to phone
     emit = True
@@ -126,6 +126,7 @@ if __name__ == '__main__':
             
             data = client.get_data(message)
             emg = np.array(data["emg_proc"])
+            print(emg)
 
             # Post processing data to be emitted
             perc_mvc = generic_processing.normalize_emg(emg, list_mvc)
@@ -147,8 +148,8 @@ if __name__ == '__main__':
                         mapping_hap = mapper.toFreqAmpl(w)
                         mapping_col = mapper.toRgbBri(w)
                         emitter.sendMessage(mapping_hap, mapping_col)
-                        sleep(0.5)
+                        sleep(0.002)
                     except TypeError:
                         print("ERROR with toFreqAmpl...")
                         emitter.sendMessage(mapping_hap, mapping_col)
-                        sleep(0.5)
+                        sleep(0.002)

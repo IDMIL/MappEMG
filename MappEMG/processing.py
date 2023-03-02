@@ -238,22 +238,24 @@ class Mapper:
     def toFreqAmpl(self,x):
         '''
         takes x and outputs its mapping as a tuple of the form
-        (amplitude,frequency)
+        output (frequency, amplitude)
+        
         '''
         f = self.mapper(x,'f')
         a = self.mapper(x,'a')
-        return [f/127, a/127] # deviding by 127 for now bcs app gets between 0 and 1
+        return [1, f/127, a/127] # deviding by 127 for now bcs app gets between 0 and 1
 
     def toRgbBri(self,x):
         '''
         takes x and outputs its mapping as a tuple of the form
         (R, G, B, brightness)
+        all four
         '''
-        R = 75
-        G = 75
-        B = 75
+        R = 255
+        G = 0
+        B = 0
         b = self.mapper(x,'b')
-        return [R, G, B, b/127] # deviding by 127 for now bcs app gets between 0 and 1
+        return [1, R, G, B, b/127*255] # deviding by 127 for now bcs app gets between 0 and 1
 
 
 class Emitter:
@@ -267,7 +269,6 @@ class Emitter:
         :param port: port of device, integer
         :return: appends the clients list
         """
-
         self.clients.append(SimpleUDPClient(ip, port))
 
     def sendMessage(self, message_hap, message_col):
@@ -278,5 +279,5 @@ class Emitter:
         """
 
         for client in self.clients:
-            client.send_message('/haptics', message_hap)
-            client.send_message('/couleur', message_col)
+            client.send_message('/channel/haptics', message_hap)
+            client.send_message('/channel/rgbw', message_col)

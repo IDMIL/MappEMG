@@ -48,7 +48,7 @@ class ComputeMvc:
         # Set frequency and acquisition parameters depending on connection
         self.with_connection = with_connection
         if self.with_connection:
-            
+
             client = Client(server_ip=server_ip, port=server_port)
             message = Message(command=['emg'], nb_frame_to_get=1)
             client.connect()
@@ -57,7 +57,7 @@ class ComputeMvc:
             # Close connection
             message = Message(command=['close'])
             client.get_data(message)
-            
+
             print("Total of {} electrodes connected".format(self.n_electrodes))
             muscle_names = []
             for i in range(self.n_electrodes):
@@ -94,7 +94,7 @@ class ComputeMvc:
         self.try_number = 0
         while True:
             var, duration = self._init_trial()
-            
+
             # Get data from mvc trial
             trial_emg = self._mvc_trial(duration, var)
             # Plot the raw emg data collected
@@ -128,7 +128,7 @@ class ComputeMvc:
                     return mvc
 
             elif task == "r":
-                # Do not save trial and continue 
+                # Do not save trial and continue
                 trial_emg = None
 
     def _init_trial(self):
@@ -160,7 +160,7 @@ class ComputeMvc:
         )
         try:
             float(t)
-            iter = float(t) * (self.frequency)
+            iter = float(t) * (self.effective_rate)
             var = int(iter)
             duration = True
         except ValueError:
@@ -190,7 +190,7 @@ class ComputeMvc:
             message = Message(command=type_of_data,
                       nb_frame_to_get=self.acquisition_rate)
             client = Client(server_ip=self.server_ip, port=self.server_port, type="TCP")
-        
+
         dummy = 0
         connected = False
         nb_frame = 0
@@ -209,18 +209,18 @@ class ComputeMvc:
                 else:
                     data_tmp = np.random.randint(1024, size=(self.n_electrodes, int(self.acquisition_rate)))
                     data_tmp = (data_tmp/(2**10)-0.5)*3.3/1009*1000
-                
+
                 # Get data streamed from server
                 if dummy == 0:
                     a = datetime.datetime.now() # timing check purposes
                     print("Got data from server at time", a)
                     dummy = 1
-                
+
                 tic = time()
 
                 data = data_tmp if nb_frame == 0 else np.append(data, data_tmp, axis=1)
-                nb_frame += self.acquisition_rate
-                time_to_sleep = (1 / (self.acquisition_rate)) - (time() - tic)
+                nb_frame += 1
+                time_to_sleep = (1 / (self.effective_rate)) - (time() - tic)
                 if time_to_sleep > 0:
                     sleep(time_to_sleep)
                 else:
@@ -239,7 +239,7 @@ class ComputeMvc:
 
             except KeyboardInterrupt:
                 print("\nStop acquiring from server...")
-                b = datetime.datetime.now() # timing checenenk purposes
+                b = datetime.datetime.now() # timing check purposes
                 print("Got data from server at time", b)
                 c = b - a
                 print("acquiring data took", c.total_seconds())
@@ -268,12 +268,12 @@ class ComputeMvc:
 #                data = [raw_data, processed_data]
                 legend = ["Raw", "Processed"]
                 legend = legend * raw_data.shape[0]
-                x = np.linspace(0, raw_data.shape[1] / (self.effective_rate), raw_data.shape[1])
+                x = np.linspace(0, raw_data.shape[1] / (self.effective_rate * self.acquisition_rate), raw_data.shape[1])
                 print("Close the plot windows to continue.")
                 Plot().multi_plot(data,
                                     nb_column=nb_column,
                                     y_label="Activation level (mV)",
-                                    x_label="Time (ms)",
+                                    x_label="Time (s)",
                                     legend=legend,
                                     subplot_title=self.muscle_names,
                                     figure_name=self.try_name,
@@ -292,7 +292,7 @@ class ComputeMvc:
             save = input("Data will not be saved. " "If you want to save press 's', if not, press enter.\n")
 
         print("Please wait during data processing (it could take some time)...")
-        
+
         save = True if save == 's' else False
 
         # Load tmp trials data and make it numpy
@@ -306,12 +306,14 @@ class ComputeMvc:
         # Process all MVC trials
         processed_mvc_trials = self.processing.process_emg(data=mvc_trials, frequency=self.frequency, ma=True)
         mvc = OfflineProcessing.compute_mvc(processed_mvc_trials)
+        print("mvc is", mvc)
 
         # Save MVC
         mvc_resh = np.reshape(mvc, (1, len(mvc))) # reshape to properly save DataFrame
+        print("mvc_resh", mvc_resh)
 
         df_mvc = pd.DataFrame(mvc_resh, columns = self.muscle_names)
-        df_mvc.insert(0, 'trial_index', list(range(0, df_mvc.shape[1])))
+        df_mvc.insert(0, 'trial_index', 0)
         df_mvc.insert(0, 'trial_name', self.try_name)
         df_mvc.to_csv("MVC{}".format(self.output_file), mode='a', index=False, header=True)
 

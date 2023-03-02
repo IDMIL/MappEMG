@@ -152,9 +152,17 @@ class RunServer():
 
             # STEP 1 - Put DICT into Queue IN
             if not self.__emg_queue_in.empty():
-                self.__emg_queue_in.get()  # as docs say: Remove and return an item from the queue.
+                try:
+                    item = self.__emg_queue_in.get(block=False)  # as docs say: Remove and return an item from the queue.
+                    if item is None:
+                        break
+                except:
+                    pass
 
-            self.__emg_queue_in.put_nowait({"emg_tmp": emg_tmp})
+            try:
+                self.__emg_queue_in.put_nowait({"emg_tmp": emg_tmp})
+            except:
+                continue
 
     def run_emg_processing(self):
 
@@ -200,12 +208,13 @@ class RunServer():
             except:
                 is_working = False
 
+
+
             if is_working:
 
                 # Get raw data from DICT from Queue IN
                 emg_tmp = np.array(emg_data["emg_tmp"])
                 emg_raw.enqueue(emg_tmp)
-
                 # Process data
                 emg_proc = emg_processing.process_emg(data=emg_raw.queue, frequency=self.device_sampling_rate, ma=True)
                 # Sends the average of the most recent 100 samples processed
@@ -226,11 +235,19 @@ class RunServer():
 
                 # STEP 3 - Put DICT into Queue OUT
                 if not self.__emg_queue_out.empty():
-                    self.__emg_queue_out.get()  # as docs say: Remove and return an item from the queue.
+                    try:
+                        item = self.__emg_queue_out.get(block=False)  # as docs say: Remove and return an item from the queue.
+                        if item is None:
+                            break
+                    except:
+                        pass
 
-                self.__emg_queue_out.put({"emg_proc": emg_proc_to_send, "emg_raw_all": emg_tmp})
-                # STEP 4 - Set event to let other process know it is ready
-                self.__event_emg.set()
+                try:
+                    self.__emg_queue_out.put({"emg_proc": emg_proc_to_send, "emg_raw_all": emg_tmp})
+                    # STEP 4 - Set event to let other process know it is ready
+                    self.__event_emg.set()
+                except:
+                    continue
 
     def run_streaming(self):
 
@@ -380,6 +397,6 @@ if __name__ == '__main__':
                              acq_channels=acq_channels,
                              device_sampling_rate=1000,  # you can change the device sampling rate here
                              size_processing_window=100,
-                             server_acquisition_rate=100
+                             server_acquisition_rate=5
                              )
     local_server.run()
