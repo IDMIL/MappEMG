@@ -45,7 +45,7 @@ conda install -cconda-forge pyqtgraph
 
 ## From Pip
 ```bash
-pip install PyQt5 python-osc
+pip install PyQt5
 pip install scipy
 pip install numpy
 pip install typing
