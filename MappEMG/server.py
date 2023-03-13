@@ -397,6 +397,6 @@ if __name__ == '__main__':
                              acq_channels=acq_channels,
                              device_sampling_rate=1000,  # you can change the device sampling rate here
                              size_processing_window=100,
-                             server_acquisition_rate=5
+                             server_acquisition_rate=20
                              )
     local_server.run()

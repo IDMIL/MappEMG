@@ -126,7 +126,7 @@ if __name__ == '__main__':
             
             data = client.get_data(message)
             emg = np.array(data["emg_proc"])
-            print(emg)
+            # print(emg)
 
             # Post processing data to be emitted
             perc_mvc = generic_processing.normalize_emg(emg, list_mvc)
@@ -150,6 +150,6 @@ if __name__ == '__main__':
                         emitter.sendMessage(mapping_hap, mapping_col)
                         sleep(0.002)
                     except TypeError:
-                        print("ERROR with toFreqAmpl...")
+                        # print("ERROR with toFreqAmpl...")
                         emitter.sendMessage(mapping_hap, mapping_col)
                         sleep(0.002)
