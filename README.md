@@ -1,11 +1,11 @@
 <!-- <p align="center">
     <img
-      src="https://github.com/karlmiko/biosiglive/tree/refactor/MappEmg_pipeline"
+      src="https://github.com/IDMIL/MappEMG/blob/main/images/MappEMG_pipeline.png"
       alt="logo"
     />
 </p> -->
 
-![alt text](https://github.com/karlmiko/biosiglive/blob/main/images/MappEmg_pipeline.png)
+![alt text](https://github.com/IDMIL/MappEMG/blob/main/images/MappEMG_pipeline.png)
 
 `MappEMG` allows the audience to experience the performer's muscle effort, an essential component of music performance typically unavailable for direct visual observation. The goal is thus to give the listeners access, through haptic vibrations, to an intimate and non-visible dimension of the musicians' bodily experience.
 
