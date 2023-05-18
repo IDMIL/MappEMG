@@ -345,17 +345,20 @@ if __name__ == '__main__':
                 print("Invalid PORT")
 
     # Verify if user wants real device connected
-    with_connection = None
-    while with_connection not in ['y', 'n']:
-        with_connection = input("\nWith device connected? (y, or n for random data): ")
-    with_connection = True if with_connection == 'y' else False
+
+    # $$ workshop version
+    with_connection = True
+    # while with_connection not in ['y', 'n']:
+    #     with_connection = input("\nWith device connected? (y, or n for random data): ")
+    # with_connection = True if with_connection == 'y' else False
 
     # Verify which real device they want
-    what_device = None
+    what_device = 'bitalino'
     bluetooth_address = None
+    # $$ workshop version
     if with_connection:
-        while what_device not in ['bitalino', 'vicon', 'pytrigno']:
-            what_device = input("\nWhat device? (bitalino, vicon, or pytrigno): ")
+    #     while what_device not in ['bitalino', 'vicon', 'pytrigno']:
+    #         what_device = input("\nWhat device? (bitalino, vicon, or pytrigno): ")
 
         # Read bitalino bluetooth address if there is a connection
         if what_device == 'bitalino':
@@ -381,11 +384,12 @@ if __name__ == '__main__':
             acq_channels = None
 
     # Check if user wants to plot data in real-time (might decrease performance)
-    with_plot = None
-    while with_plot not in ['y', 'n']:
-        with_plot = input(
-            "\nPlot data in real-time? (y or n): ")
-    with_plot = True if with_plot == 'y' else False
+    # $$workshop version
+    with_plot = False
+    # while with_plot not in ['y', 'n']:
+    #     with_plot = input(
+    #         "\nPlot data in real-time? (y or n): ")
+    # with_plot = True if with_plot == 'y' else False
 
     # Run server with information provided
     local_server = RunServer(with_connection=with_connection,

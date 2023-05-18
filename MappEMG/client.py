@@ -38,7 +38,9 @@ if __name__ == '__main__':
     # Load MVC data from previous trials or random
     load_mvc = None
     while load_mvc not in ['y', 'n']:
-        load_mvc = input("\nDo you want to load real MVC values? ('y' or 'n' for random): ")
+        # $$workshop version
+        load_mvc = 'y'
+        #load_mvc = input("\nDo you want to load real MVC values? ('y' or 'n' for random): ")
 
     if load_mvc == 'n':
         list_mvc = np.random.rand(n_electrode, 1).tolist()
@@ -52,7 +54,8 @@ if __name__ == '__main__':
     emit = True
     n_devices = None
     while not isinstance(n_devices, int):
-        n_devices = input('\nHow many devices with the hAPPtiks app would you like to connect? ')
+        n_devices = 1
+        # n_devices = input('\nHow many devices with the hAPPtiks app would you like to connect? ')
         try:
             n_devices = int(n_devices)
             if n_devices < 0:
@@ -69,8 +72,8 @@ if __name__ == '__main__':
     
         n = 1
         while n != int(n_devices)+ 1:
-            ip = input(f'\nIP of device number {n} (e.g: XXX.XXX.X.X): ')
-            port = input(f'\nPORT of device number {n} (e.g: 2222): ') 
+            ip = '192.168.88.236' # input(f'\nIP of device number {n} (e.g: XXX.XXX.X.X): ')
+            port = '1984' # input(f'\nPORT of device number {n} (e.g: 2222): ')
             try:
                 ip = str(ip)
                 port = int(port)
@@ -105,6 +108,8 @@ if __name__ == '__main__':
         for i, w in enumerate(weights_raw):
             weights[0][i] = float(w)
 
+        amplifier = input(
+            "\nAmplify the muscle activity to all sensors (range: 0-2): ").split(" ")
 
     # Initializing post processor
     post_processor = EMGprocess()
@@ -125,7 +130,11 @@ if __name__ == '__main__':
         if connected:
             
             data = client.get_data(message)
-            emg = np.array(data["emg_proc"])
+            emg_amp = []
+            for i in range(len(data["emg_proc"])):
+                new_emg_amp = [data["emg_proc"][i][0]*float(amplifier[i])]
+                emg_amp.append(new_emg_amp)
+            emg = np.array(emg_amp)
             # print(emg)
 
             # Post processing data to be emitted
