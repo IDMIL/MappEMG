@@ -3,12 +3,12 @@ This file is part of biosiglive. It is used to plot the data in live or offline 
 """
 try:
     import pyqtgraph as pg
-    import PyQt5
-    from PyQt5.QtWidgets import QLabel
+    import PyQt6
+    from PyQt6.QtWidgets import QLabel
     from pyqtgraph.Qt import QtGui
     # from PySide6 import QtGui
     import pyqtgraph.widgets.RemoteGraphicsView as rgv
-    from PyQt5.QtWidgets import *
+    from PyQt6.QtWidgets import *
 except ModuleNotFoundError:
     pass
 import numpy as np
