@@ -7,6 +7,7 @@ from biosiglive.interfaces.vicon_interface import ViconClient
 from biosiglive.streaming.server import Server
 from biosiglive.enums import RealTimeProcessingMethod
 from biosiglive.streaming.stream_data import StreamData
+from biosiglive.gui.plot import LivePlot, PlotType
 
 from biosiglive.processing.utils import NumpyQueue
 from biosiglive.interfaces.bitalino_interface import BitalinoClient
@@ -135,10 +136,7 @@ class RunServer():
                 except:
                     raise RuntimeError("Could not create Pytrigno connection.")
 
-        server = Server(ip=self.server_ip, port=self.server_port, server_type='TCP')
-        server.start()
-        connected = False
-        print(self.server_ip, self.server_port)
+
 
         while True:
 
@@ -159,39 +157,175 @@ class RunServer():
                 if self.sensorkit == 'pytrigno':
                     emg_tmp = sensor_interface.get_device_data(device_name="Pytrigno")[0]
 
-                processing = OfflineProcessing(data_rate=self.device_sampling_rate, processing_window=self.size_processing_window)
+            # STEP 1 - Put DICT into Queue IN
+            if not self.__emg_queue_in.empty():
+                try:
+                    item = self.__emg_queue_in.get(
+                        block=False)  # as docs say: Remove and return an item from the queue.
+                    if item is None:
+                        break
+                except:
+                    pass
+
+            try:
+                self.__emg_queue_in.put_nowait({"emg_tmp": emg_tmp})
+            except:
+                continue
+
+    def run_emg_processing(self):
+
+        print("Starting EMG Processing...")
+
+        emg_processing = OfflineProcessing()
+        emg_processing.ma_win = 100
+        emg_processing.bpf_lcut = 10
+        emg_processing.bpf_hcut = 400
+        emg_processing.lpf_lcut = 5.0
+        emg_processing.lp_butter_order = 4
+        emg_processing.bp_butter_order = 4
+
+        emg_raw = NumpyQueue(max_size=self.device_sampling_rate,
+                             queue=np.zeros(shape=(self.n_electrode, self.device_sampling_rate)), base_value=0)
+
+
+
+        if self.with_plot:
+            nb_seconds_plot = 5
+
+            # Start Raw EMG Live Plot
+            raw_plot = LivePlot(
+                name="Raw EMG",
+                rate=100,
+                plot_type=PlotType.Curve,
+                nb_subplots=self.n_electrode,
+                channel_names= [str(c) for c in self.acq_channels],
+            )
+
+            # raw_plot = LivePlot()
+            # raw_plot.add_new_plot("Raw EMG", "curve", [str(c) for c in self.acq_channels])
+            # raw_rplt, raw_layout, raw_app, raw_box = raw_plot.init_plot_window(plot=raw_plot.plot[0], use_checkbox=True)
+            # raw_queue_to_plot = NumpyQueue(max_size=nb_seconds_plot * self.device_sampling_rate,
+            #                                queue=np.zeros(
+            #                                    (self.n_electrode, nb_seconds_plot * self.device_sampling_rate)),
+            #                                base_value=0)
+            # Start Raw EMG Live Plot
+
+            proc_plot = LivePlot(
+                name="Raw EMG",
+                rate=100,
+                plot_type=PlotType.Curve,
+                nb_subplots=self.n_electrode,
+                channel_names=[str(c) for c in self.acq_channels],
+            )
+
+            # proc_plot = LivePlot()
+            # proc_plot.add_new_plot("Proc EMG", "curve", [str(c) for c in self.acq_channels])
+            # proc_rplt, proc_layout, proc_app, proc_box = proc_plot.init_plot_window(plot=proc_plot.plot[0],
+            #                                                                         use_checkbox=True)
+            # proc_queue_to_plot = NumpyQueue(max_size=nb_seconds_plot * self.device_sampling_rate,
+            #                                 queue=np.zeros(
+            #                                     (self.n_electrode, nb_seconds_plot * self.device_sampling_rate)),
+            #                                 base_value=0)
+
+        while True:
+            try:
+                # STEP 2 - Take DICT from Queue IN
+                emg_data = self.__emg_queue_in.get_nowait()
+                is_working = True
+            except:
+                is_working = False
+
+            if is_working:
+                # Get raw data from DICT from Queue IN
+                emg_tmp = emg_data["emg_tmp"]
+                emg_raw.enqueue(emg_tmp)
+                # Process data
+                processing = OfflineProcessing(data_rate=self.device_sampling_rate,
+                                               processing_window=self.size_processing_window)
                 emg_proc = processing.process_emg(np.array(emg_tmp))
-                # emg_proc_to_send = emg_proc
+                # Sends the average of the most recent 100 samples processed
                 emg_proc_to_send = np.reshape(np.average(emg_proc[:, -self.size_processing_window:], axis=1),
                                               (self.n_electrode, 1))
 
-            # if not connected:
+                if self.with_plot:
+                    # Raw data live plot
+                    if raw_plot is not None:
+                        # raw_queue_to_plot.enqueue(emg_tmp)
+                        raw_plot.update(emg_tmp[0])
+                    # Processed data live plot
+                    if proc_plot is not None:
+                        # proc_queue_to_plot.enqueue(emg_proc_to_send)
+                        proc_plot.update(emg_proc_to_send[0])
+
+                # STEP 3 - Put DICT into Queue OUT
+                if not self.__emg_queue_out.empty():
+                    try:
+                        item = self.__emg_queue_out.get(
+                            block=False)  # as docs say: Remove and return an item from the queue.
+                        if item is None:
+                            break
+                    except:
+                        pass
+
+                try:
+                    self.__emg_queue_out.put({"emg_proc": emg_proc_to_send, "emg_raw_all": emg_tmp})
+                    # STEP 4 - Set event to let other process know it is ready
+                    self.__event_emg.set()
+                except:
+                    continue
+
+    def run_streaming(self):
+
+        print("Starting Streaming...")
+
+        server = Server(ip=self.server_ip, port=self.server_port, server_type='TCP')
+        server.start()
+        connected = False
+
+        while True:
+
+            if not connected:
+                try:
+                    connection, message = server.client_listening()
+                    connected = True
+                except socket.timeout:
+                    pass
+
             try:
-                connection, message = server.client_listening()
-                # connected = True
-            except socket.timeout:
-                pass
+                # STEP 5 - Wait for event
+                self.__event_emg.wait()
 
-            self.__event_emg.clear()
-            data_to_send = {}
-            data_to_send["emg_proc"] = emg_proc_to_send[0]
-            data_to_send["emg_raw_all"] = emg_tmp
-            data_to_send["other_paras"] = np.array([self.n_electrode, self.device_sampling_rate, self.server_acquisition_rate])
-            data_to_send["close"] = [0]
-
-            # if connected:
-            try:
-                server.send_data(data_to_send, connection, message)
-            # elif message['command'] == ['close']:
-            #     connection.close()
-            # else:
-            #     raise ValueError("Unkown message command.")
-
+                # STEP 6 - Take DICT from Queue OUT
+                data = self.__emg_queue_out.get_nowait()
+                is_working = True
             except:
+                is_working = False
 
-                connection.close()
-                    # connected = False
-                #     print("\nClosing connection... \nListening to new client...\n")
+            if is_working:
+                # STEP 7 - Release lock
+                self.__event_emg.clear()
+                data_to_send = {}
+                data_to_send["emg_proc"] = data["emg_proc"]
+                data_to_send["emg_raw_all"] = data["emg_raw_all"]
+                data_to_send["other_paras"] = np.array([self.n_electrode, self.device_sampling_rate, self.server_acquisition_rate])
+                data_to_send["close"] = [0]
+
+                if connected:
+                    try:
+                        if message['command'] == ['emg_raw_all'] or message['command'] == ['emg_proc'] \
+                                or message['command'] == ['other_paras']:
+                            server.send_data(data_to_send, connection, message)
+                        elif message['command'] == ['close']:
+                            server.send_data(data_to_send, connection, message)
+                            print("\nClosing connection... \nListening to new client...\n")
+                            connection.close()
+                        else:
+                            raise ValueError("Unkown message command.")
+
+                    except:
+
+                        connection.close()
+                        connected = False
 
 
     def run(self):
@@ -200,8 +334,8 @@ class RunServer():
 
         processes = []
         processes.append(self.__process(name="acquire_emg", target=RunServer.run_sensor_acquisition, args=(self,)))
-        # processes.append(self.__process(name="process_emg", target=RunServer.run_emg_processing, args=(self,)))
-        # processes.append(self.__process(name="stream_emg", target=RunServer.run_streaming, args=(self,)))
+        processes.append(self.__process(name="process_emg", target=RunServer.run_emg_processing, args=(self,)))
+        processes.append(self.__process(name="stream_emg", target=RunServer.run_streaming, args=(self,)))
 
         for p in processes:
             p.start()
@@ -283,6 +417,6 @@ if __name__ == '__main__':
                              acq_channels=acq_channels,
                              device_sampling_rate=1000,  # you can change the device sampling rate here
                              size_processing_window=100,
-                             server_acquisition_rate=100
+                             server_acquisition_rate=10
                              )
     local_server.run()

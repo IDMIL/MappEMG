@@ -61,7 +61,6 @@ class ComputeMvc:
                 command=["other_paras"],
                 nb_frame_to_get=1,
             )
-            print(data)
             self.n_electrodes = np.array(data['other_paras'][0])
 
             print("Total of {} electrodes connected".format(self.n_electrodes))
@@ -102,9 +101,11 @@ class ComputeMvc:
             var, duration = self._init_trial()
 
             # Get data from mvc trial
-            trial_emg = self._mvc_trial(duration, var)
+            trial_emg, proc_emg = self._mvc_trial(duration, var)
+            trial_emg = trial_emg.T
+            proc_emg = proc_emg.T
             # Plot the raw emg data collected
-            self._plot_trial(trial_emg)
+            self._plot_trial(trial_emg, proc_emg)
 
             task = input(
                 "Press 'c' to do another MVC trial, 'r' to repeat this trial, or 'q' to quit.\n"
@@ -215,12 +216,19 @@ class ComputeMvc:
                         connected = True
 
                     if connected:
-                        client_data = client.get_data_from_server(
+                        client_data_raw = client.get_data_from_server(
+                            command=["emg_raw_all"],
+                            nb_frame_to_get=1,
+                        )
+                        emg_raw = [[client_data_raw["emg_raw_all"]]]
+                        data_tmp = emg_raw
+
+                        client_data_proc = client.get_data_from_server(
                             command=["emg_proc"],
                             nb_frame_to_get=1,
                         )
-                        emg = [[client_data["emg_proc"]]]
-                        data_tmp = emg
+                        emg_proc = [[client_data_proc["emg_proc"]]]
+
                 else:
                     data_tmp = np.random.randint(1024, size=(self.n_electrodes, int(self.acquisition_rate)))
                     data_tmp = (data_tmp/(2**10)-0.5)*3.3/1009*1000
@@ -232,8 +240,9 @@ class ComputeMvc:
                     dummy = 1
 
                 tic = time()
-                print(data_tmp)
-                data = data_tmp if nb_frame == 0 else np.append(data, data_tmp, axis=0)
+                print("eff rate", self.effective_rate)
+                data_raw = data_tmp[0] if nb_frame == 0 else np.append(data_raw, data_tmp[0], axis=0)
+                data_proc = emg_proc[0] if nb_frame == 0 else np.append(data_proc, emg_proc[0], axis=0)
                 nb_frame += 1
                 time_to_sleep = (1 / (self.effective_rate)) - (time() - tic)
                 if time_to_sleep > 0:
@@ -241,16 +250,22 @@ class ComputeMvc:
                 else:
                     print(f"Delay of {abs(time_to_sleep)}.")
 
+
+
                 if duration:
                     if nb_frame == int(var):
                         print("\nStop acquiring from server...")
+                        client_data_raw = client.get_data_from_server(
+                            command=["close"],
+                            nb_frame_to_get=1,
+                        )
                         b = datetime.datetime.now() # timing check purposes
                         print("Got data from server at time", b)
                         c = b - a
                         print("acquiring data took", c.total_seconds())
                         print("n of frames: ", nb_frame)
-                        print(data.shape)
-                        return data
+                        print(data_raw.shape)
+                        return data_raw, data_proc
 
             except KeyboardInterrupt:
                 print("\nStop acquiring from server...")
@@ -260,10 +275,10 @@ class ComputeMvc:
                 print("acquiring data took", c.total_seconds())
                 print("n of frames: ", nb_frame)
                 print(data.shape)
-                return data
+                return data, emg_proc
 
 
-    def _plot_trial(self, raw_data: np.ndarray = None):
+    def _plot_trial(self, raw_data: np.ndarray = None, proc_data: np.ndarray = None):
         """
         Plot the trial.
 
@@ -272,24 +287,20 @@ class ComputeMvc:
         raw_data : numpy.ndarray
             The raw EMG data of the trial.
         """
-        self.processing = OfflineProcessing(data_rate=self.frequency,
-                                       processing_window=100)
-
-        processed_data = self.processing.process_emg(np.array(raw_data))
+        processed_data = proc_data
         data = [raw_data, processed_data]
-        print(data)
+        print("shape", raw_data.shape, processed_data)
         nb_column = 4 if raw_data.shape[0] > 4 else raw_data.shape[0]
         plot_comm = "y"
         print(f"Trial {self.try_name} terminated. ")
         while plot_comm != "n":
             plot_comm = input(f"Would you like to plot your trial ? 'y'/'n'")
             if plot_comm == "y":
-#                data = [raw_data, processed_data]
                 legend = ["Raw", "Processed"]
                 legend = legend * raw_data.shape[0]
                 x = np.linspace(0, raw_data.shape[1] / (self.effective_rate * self.acquisition_rate), raw_data.shape[1])
                 print("Close the plot windows to continue.")
-                OfflinePlot().multi_plot(data[0],
+                OfflinePlot().multi_plot(data,
                                     nb_column=nb_column,
                                     y_label="Activation level (mV)",
                                     x_label="Time (s)",
@@ -297,9 +308,6 @@ class ComputeMvc:
                                     subplot_title=self.muscle_names,
                                     figure_name=self.try_name,
                                     x=x)
-                # x = np.linspace(0, raw_data.shape[1])
-                # plt.plot(raw_data[0])
-                # plt.show()
 
     def _save_trial(self):
         """
@@ -323,8 +331,11 @@ class ComputeMvc:
         mvc_trials = df.to_numpy().T # All the trials from tmp file
 
         # Process all MVC trials
-        processed_mvc_trials = self.processing.process_emg(data=mvc_trials, frequency=self.frequency, ma=True)
-        mvc = OfflineProcessing.compute_mvc(processed_mvc_trials)
+        self.processing = OfflineProcessing(data_rate=self.frequency,
+                                            processing_window=100)
+
+        processed_mvc_trials = self.processing.process_emg(np.array(mvc_trials))
+        mvc = OfflineProcessing.compute_mvc(nb_muscles=self.n_electrodes, mvc_trials=processed_mvc_trials, window_size=100)
         print("mvc is", mvc)
 
         # Save MVC
