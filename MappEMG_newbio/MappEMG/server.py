@@ -1,6 +1,7 @@
 import socket
 import numpy as np
 import multiprocessing as mp
+from time import sleep
 from biosiglive.interfaces.generic_interface import GenericInterface
 from biosiglive.interfaces.pytrigno_interface import PytrignoClient
 from biosiglive.interfaces.vicon_interface import ViconClient
@@ -104,14 +105,22 @@ class RunServer():
         print("Starting Sensor Acquisition...")
 
         if self.with_connection:
-
             if self.sensorkit == 'bitalino':
                 try:
                     sensor_interface = BitalinoClient(ip=self.bluetooth_address)
                     sensor_interface.add_device(
                         "Bitalino", rate=self.device_sampling_rate, system_rate=self.server_acquisition_rate,
                         acq_channels=self.acq_channels, device_data_file_key="emg",
-                        process_method = RealTimeProcessingMethod.ProcessEmg)
+                        processing_method = RealTimeProcessingMethod.ProcessEmg,
+
+                        data_buffer_size=1000,
+                        processing_window = self.size_processing_window,
+                        moving_average_window=100,
+                        moving_average=True,
+                        low_pass_filter=False,
+                        band_pass_filter=True,
+                        normalization=False,
+                    )
                 except:
                     raise RuntimeError(
                         "Could not create Bitalino connection. Make sure you bluetooth is activated and you have the correct bitalino address.")
@@ -136,8 +145,6 @@ class RunServer():
                 except:
                     raise RuntimeError("Could not create Pytrigno connection.")
 
-
-
         while True:
 
             if not self.with_connection:
@@ -148,14 +155,14 @@ class RunServer():
                 if self.sensorkit == 'bitalino':
                     emg_tmp = sensor_interface.get_device_data(device_name="Bitalino")[0]
                     emg_tmp = (emg_tmp / (2 ** 10) - 0.5) * 3.3 / 1009 * 1000  # convert to mV
-
-
                 if self.sensorkit == 'vicon':
                     sensor_interface.get_frame()
                     emg_tmp = sensor_interface.get_device_data(device_name="Vicon")[0]
 
                 if self.sensorkit == 'pytrigno':
                     emg_tmp = sensor_interface.get_device_data(device_name="Pytrigno")[0]
+
+                emg_proc = sensor_interface.devices[0].process()
 
             # STEP 1 - Put DICT into Queue IN
             if not self.__emg_queue_in.empty():
@@ -168,21 +175,13 @@ class RunServer():
                     pass
 
             try:
-                self.__emg_queue_in.put_nowait({"emg_tmp": emg_tmp})
+                self.__emg_queue_in.put_nowait({"emg_tmp": emg_tmp, "emg_proc": emg_proc})
             except:
                 continue
 
     def run_emg_processing(self):
 
         print("Starting EMG Processing...")
-
-        emg_processing = OfflineProcessing()
-        emg_processing.ma_win = 100
-        emg_processing.bpf_lcut = 10
-        emg_processing.bpf_hcut = 400
-        emg_processing.lpf_lcut = 5.0
-        emg_processing.lp_butter_order = 4
-        emg_processing.bp_butter_order = 4
 
         emg_raw = NumpyQueue(max_size=self.device_sampling_rate,
                              queue=np.zeros(shape=(self.n_electrode, self.device_sampling_rate)), base_value=0)
@@ -200,15 +199,7 @@ class RunServer():
                 nb_subplots=self.n_electrode,
                 channel_names= [str(c) for c in self.acq_channels],
             )
-
-            # raw_plot = LivePlot()
-            # raw_plot.add_new_plot("Raw EMG", "curve", [str(c) for c in self.acq_channels])
-            # raw_rplt, raw_layout, raw_app, raw_box = raw_plot.init_plot_window(plot=raw_plot.plot[0], use_checkbox=True)
-            # raw_queue_to_plot = NumpyQueue(max_size=nb_seconds_plot * self.device_sampling_rate,
-            #                                queue=np.zeros(
-            #                                    (self.n_electrode, nb_seconds_plot * self.device_sampling_rate)),
-            #                                base_value=0)
-            # Start Raw EMG Live Plot
+            raw_plot.init(plot_windows=500, y_labels="Raw EMG (mV)")
 
             proc_plot = LivePlot(
                 name="Raw EMG",
@@ -217,17 +208,12 @@ class RunServer():
                 nb_subplots=self.n_electrode,
                 channel_names=[str(c) for c in self.acq_channels],
             )
+            proc_plot.init(plot_windows=500, y_labels="Processed EMG (mV)")
 
-            # proc_plot = LivePlot()
-            # proc_plot.add_new_plot("Proc EMG", "curve", [str(c) for c in self.acq_channels])
-            # proc_rplt, proc_layout, proc_app, proc_box = proc_plot.init_plot_window(plot=proc_plot.plot[0],
-            #                                                                         use_checkbox=True)
-            # proc_queue_to_plot = NumpyQueue(max_size=nb_seconds_plot * self.device_sampling_rate,
-            #                                 queue=np.zeros(
-            #                                     (self.n_electrode, nb_seconds_plot * self.device_sampling_rate)),
-            #                                 base_value=0)
+
 
         while True:
+
             try:
                 # STEP 2 - Take DICT from Queue IN
                 emg_data = self.__emg_queue_in.get_nowait()
@@ -239,10 +225,9 @@ class RunServer():
                 # Get raw data from DICT from Queue IN
                 emg_tmp = emg_data["emg_tmp"]
                 emg_raw.enqueue(emg_tmp)
+
                 # Process data
-                processing = OfflineProcessing(data_rate=self.device_sampling_rate,
-                                               processing_window=self.size_processing_window)
-                emg_proc = processing.process_emg(np.array(emg_tmp))
+                emg_proc = emg_data["emg_proc"]
                 # Sends the average of the most recent 100 samples processed
                 emg_proc_to_send = np.reshape(np.average(emg_proc[:, -self.size_processing_window:], axis=1),
                                               (self.n_electrode, 1))
@@ -323,7 +308,6 @@ class RunServer():
                             raise ValueError("Unkown message command.")
 
                     except:
-
                         connection.close()
                         connected = False
 
@@ -416,7 +400,7 @@ if __name__ == '__main__':
                              bluetooth_address=bluetooth_address,
                              acq_channels=acq_channels,
                              device_sampling_rate=1000,  # you can change the device sampling rate here
-                             size_processing_window=100,
-                             server_acquisition_rate=10
+                             size_processing_window=1000,
+                             server_acquisition_rate=100
                              )
     local_server.run()
