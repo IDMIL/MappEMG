@@ -133,30 +133,14 @@ class BitalinoClient(GenericInterface):
             else:
                 device.new_data = np.random.rand(device.nb_channels, device.sample)
             try:
-                device.new_data = np.array(self.client.read(nSamples=device.system_rate), dtype=float)
+                device.new_data = np.array(self.client.read(nSamples=device.sample), dtype=float)
                 device.new_data = np.delete(device.new_data, [0, 1, 2, 3, 4], 1)
                 device.new_data = device.new_data.T
-                all_device_data.append(device.new_data)
-
-                if self.offline_data:
-                    device.new_data = self.offline_data[self.device_data_key[d]][
-                                      : device.nb_channels, self.c: self.c + device.sample
-                                      ]
-                    if abs(self.c + device.sample - self.offline_data[self.device_data_key[d]].shape[
-                        1]) > device.sample:
-                        self.c = self.c + device.sample
-                    else:
-                        self.c = 0
-                else:
-                    device.new_data = np.random.rand(device.nb_channels, device.sample)
 
                 device.append_data(device.new_data)
                 all_device_data.append(device.new_data)
 
             except:
                 raise RuntimeError("Error in getting data from bitalino device.")
-
-        if len(all_device_data) == 1:
-            return all_device_data[0]
 
         return all_device_data
