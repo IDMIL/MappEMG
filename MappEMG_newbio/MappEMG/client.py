@@ -30,9 +30,9 @@ if __name__ == '__main__':
 
     # Get data from server and close connection
     client = TcpClient(server_ip, server_port, read_frequency=100)
-    client.add_device(
-        1, command_name="other_paras", device_type=DeviceType.Emg, name="Bitalino", rate=100
-    )
+    # client.add_device(
+    #     1, command_name="other_paras", device_type=DeviceType.Emg, name="Bitalino", rate=100
+    # )
 
     data_otherpara = client.get_data_from_server(
         command=["other_paras"],
@@ -138,10 +138,10 @@ if __name__ == '__main__':
     print("\nStart receiving from server...\n")
 
     while True:
-        client = TcpClient(server_ip, server_port, read_frequency=read_freq)
-        client.add_device(
-            1, command_name="emg_proc", device_type=DeviceType.Emg, name="Bitalino", rate=system_rate
-        )
+        client = TcpClient(server_ip, server_port, read_frequency=system_rate)
+        # client.add_device(
+        #     1, command_name="emg_proc", device_type=DeviceType.Emg, name="Bitalino", rate=system_rate
+        # )
 
         client_data = client.get_data_from_server(
             command=["emg_proc"],

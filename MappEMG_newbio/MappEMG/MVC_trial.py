@@ -192,11 +192,7 @@ class ComputeMvc:
             The EMG data of the trial.
         """
         data = None
-        if self.with_connection is True:
-            client = TcpClient(server_ip, server_port, read_frequency=self.frequency)
-            client.add_device(
-                1, command_name="emg_proc", device_type=DeviceType.Emg, name="Bitalino", rate=self.acquisition_rate
-            )
+        # if self.with_conne
 
 
         dummy = 0
@@ -205,14 +201,16 @@ class ComputeMvc:
         if var == -1:
             print("\nTrial is running...\nPlease press 'Ctrl+C' to finsish trial.\n")
         while True:
+
             try:
+                t1 = datetime.datetime.now()  # timing check purposes
                 if self.with_connection is True:
                     if not connected:
                         client = TcpClient(server_ip, server_port, read_frequency=self.frequency)
-                        client.add_device(
-                            1, command_name="emg_proc", device_type=DeviceType.Emg, name="Bitalino",
-                            rate=self.acquisition_rate
-                        )
+                        # client.add_device(
+                        #     1, command_name="emg_proc", device_type=DeviceType.Emg, name="Bitalino",
+                        #     rate=self.acquisition_rate
+                        # )
                         connected = True
 
                     if connected:
@@ -232,6 +230,8 @@ class ComputeMvc:
                 else:
                     data_tmp = np.random.randint(1024, size=(self.n_electrodes, int(self.acquisition_rate)))
                     data_tmp = (data_tmp/(2**10)-0.5)*3.3/1009*1000
+                t2 = datetime.datetime.now()  # timing check purposes
+                print(data_tmp, emg_proc)
 
                 # Get data streamed from server
                 if dummy == 0:
@@ -240,17 +240,19 @@ class ComputeMvc:
                     dummy = 1
 
                 tic = time()
-                print("eff rate", self.effective_rate)
+
                 data_raw = data_tmp[0] if nb_frame == 0 else np.append(data_raw, data_tmp[0], axis=0)
                 data_proc = emg_proc[0] if nb_frame == 0 else np.append(data_proc, emg_proc[0], axis=0)
                 nb_frame += 1
                 time_to_sleep = (1 / (self.effective_rate)) - (time() - tic)
+
+                # print("proc", data_raw, data_proc)
                 if time_to_sleep > 0:
                     sleep(time_to_sleep)
                 else:
                     print(f"Delay of {abs(time_to_sleep)}.")
 
-
+                t3 = datetime.datetime.now()  # timing check purposes
 
                 if duration:
                     if nb_frame == int(var):
@@ -289,7 +291,6 @@ class ComputeMvc:
         """
         processed_data = proc_data
         data = [raw_data, processed_data]
-        print("shape", raw_data.shape, processed_data)
         nb_column = 4 if raw_data.shape[0] > 4 else raw_data.shape[0]
         plot_comm = "y"
         print(f"Trial {self.try_name} terminated. ")
@@ -324,8 +325,8 @@ class ComputeMvc:
 
         # Load tmp trials data and make it numpy
         df = pd.read_csv('df_trial_tmp.csv')    # Open csv file
-        if save:
-            df.to_csv("TRIALS{}".format(self.output_file), index=False, header=True)
+        # if save:
+        #     df.to_csv("TRIALS{}".format(self.output_file), index=False, header=True)
         df.drop('trial_index', axis=1, inplace=True)
         df.drop('trial_name', axis=1, inplace=True)
         mvc_trials = df.to_numpy().T # All the trials from tmp file

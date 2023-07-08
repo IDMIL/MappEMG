@@ -17,74 +17,38 @@ Then the streaming will be started with all the data streaming, processing and t
 Please note that it is not yet possible to plot the data in real-time.
 """
 from custom_interface import MyInterface
-from biosiglive import (
-    ViconClient,
-    PytrignoClient,
-    StreamData,
-    DeviceType,
-    InverseKinematicsMethods,
-    RealTimeProcessingMethod,
-    InterfaceType,
-)
+from biosiglive.interfaces.pytrigno_interface import PytrignoClient
+from biosiglive.interfaces.vicon_interface import ViconClient
+from biosiglive.streaming.stream_data import StreamData
+from biosiglive.enums import DeviceType
+from biosiglive.enums import InverseKinematicsMethods
+from biosiglive.enums import RealTimeProcessingMethod
+from biosiglive.enums import InterfaceType
+from biosiglive.interfaces.bitalino_interface import BitalinoClient
 
-try:
-    import biorbd
-except ModuleNotFoundError:
-    biorbd_package = False
-
-try:
-    from vicon_dssdk import ViconDataStream as VDS
-except ModuleNotFoundError:
-    vicon_package = False
 
 
 if __name__ == "__main__":
     server_ip = "127.0.0.1"
-    server_port = 50000
+    server_port = 5005
     interface_type = InterfaceType.Custom
 
-    if interface_type == InterfaceType.Custom:
-        interface = MyInterface(system_rate=100, data_path="abd.bio")
-    elif interface_type == InterfaceType.ViconClient:
-        interface = ViconClient(system_rate=100)
-    elif interface_type == InterfaceType.PytrignoClient:
-        interface = PytrignoClient(system_rate=100, ip="127.0.0.1")
-    else:
-        raise ValueError("The type of interface is not valid.")
-
-    model_path = "model/Wu_Shoulder_Model_mod_wt_wrapp.bioMod"
-    nb_electrode = 5
+    interface = BitalinoClient(ip="20:19:07:00:7E:19")
     interface.add_device(
-        name="EMG",
-        device_type=DeviceType.Emg,
-        rate=2000,
-        nb_channels=nb_electrode,
-        device_data_file_key="emg",
-        data_buffer_size=2000,
+        "Bitalino",
+        rate=1000, system_rate=1000,
+        acq_channels=[0], device_data_file_key="emg",
         processing_method=RealTimeProcessingMethod.ProcessEmg,
-        processing_window=1,
-        moving_average_window=1,
+        data_buffer_size=1000,
+        processing_window=1000,
+        moving_average_window=100,
+        moving_average=True,
         low_pass_filter=False,
         band_pass_filter=True,
         normalization=False,
     )
-    interface.get_device("EMG").process_method = RealTimeProcessingMethod.ProcessEmg
-    interface.get_device("EMG").process_method_kwargs = {
-        "processing_window": 2000,
-        "low_pass_filter": False,
-        "band_pass_filter": True,
-    }
 
-    interface.add_marker_set(
-        name="markers",
-        rate=100,
-        data_buffer_size=100,
-        kinematics_method=InverseKinematicsMethods.BiorbdKalman,
-        model_path=model_path,
-        marker_data_file_key="markers",
-        nb_markers=16,
-    )
     data_streaming = StreamData(stream_rate=100)
     data_streaming.add_interface(interface)
-    data_streaming.add_server(server_ip, server_port, device_buffer_size=20, marker_set_buffer_size=1)
-    data_streaming.start(save_streamed_data=True, save_path="data_streamed")
+    data_streaming.add_server(server_ip, server_port, device_buffer_size=10)
+    data_streaming.start(save_streamed_data=False)

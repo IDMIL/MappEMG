@@ -12,6 +12,7 @@ class InterfaceType(Enum):
     ViconClient = "vicon_client"
     PytrignoClient = "pytrigno_client"
     TcpClient = "tcp_client"
+    BitalinoClient = "bitalino_client"
     Custom = "custom"
 
 

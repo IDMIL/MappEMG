@@ -381,7 +381,7 @@ class RealTimeProcessing(GenericProcessing):
                 quot = np.array(mvc_list).reshape(-1, 1)
         else:
             quot = [1]
-
+        # self.raw_data_buffer = emg_data
         if len(self.raw_data_buffer) == 0:
             self.raw_data_buffer = emg_data
             processed_shape = self.raw_data_buffer.shape[1] if not moving_average else 1
