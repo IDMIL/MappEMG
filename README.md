@@ -236,4 +236,13 @@ To stop the client, press `^C` in the terminal in which it is running
 
 
 # Citing
-If you use `MappEMG`, we would be grateful if you could cite this paper: https://nime.pubpub.org/pub/kmn0rbyp/release/1?readingCollection=bb45043c
+If you use `MappEMG`, we would be grateful if you could cite this paper: https://link.springer.com/chapter/10.1007/978-3-031-55312-7_24
+
+@inproceedings{piao2023mappemg,
+  title={MappEMG: Enhancing Music Pedagogy by Mapping Electromyography to Multimodal Feedback},
+  author={Piao, Ziyue and Wanderley, Marcelo M and Verdugo, Felipe},
+  booktitle={International Conference on ArtsIT, Interactivity and Game Creation},
+  pages={325--341},
+  year={2023},
+  organization={Springer}
+}
