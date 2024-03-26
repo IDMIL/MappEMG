@@ -12,7 +12,7 @@
 There are three steps to get MappEMG up and running:
 First, connect the acquisition device (Bitalino or Delsys) to your local machine. Then, initiate the server, responsible for constantly acquiring data from the sensor device, processing it, and streaming it to either a client or an MVC trial. Finally, initiate a client connection to the server. The client will post-process the EMG data and emit it to the Happtiks iOS mobile app. Server, client, and MVC modules are built upon the tools of the Python library biosiglive. 
 
-For more information on the project, check out [this](https://nime.pubpub.org/pub/kmn0rbyp/release/1) paper!
+For more information on the project, check out [ArtsIT2023](https://link.springer.com/chapter/10.1007/978-3-031-55312-7_24) and [NIME2022](https://nime.pubpub.org/pub/kmn0rbyp/release/1) papers!
 <!-- The processing pipeline is based on [Emg2haptics](https://github.com/Fiverdug/Emg2haptics) maxMSP code, which has been translated into python.  -->
 
 # Table of Contents  
